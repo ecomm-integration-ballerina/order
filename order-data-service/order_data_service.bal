@@ -20,4 +20,13 @@ service<http:Service> orderDataAPI bind orderListener {
         http:Response res = addOrder(req, untaint orderJson);
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
     }
+
+    @http:ResourceConfig {
+        methods:["GET"],
+        path: "/"
+    }
+    getOrders (endpoint outboundEp, http:Request req) {
+        http:Response res = getOrders(req);
+        outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
+    }    
 }
