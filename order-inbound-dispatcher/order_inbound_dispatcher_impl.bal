@@ -9,55 +9,16 @@ endpoint mb:SimpleQueueSender orderInboundQueue {
     queueName: config:getAsString("order.mb.queueName")
 };
 
-public function addOrder (http:Request req, string kind) returns http:Response {
+public function addOrder (http:Request req, Order orderRec, string kind) returns http:Response {
 
     http:Response res = new;
-    string contentType = req.getContentType();
-    json orderJson;
-    if (contentType.contains("text/plain")) {
-        
-        match <json> req.getTextPayload() {
-            json j => orderJson = j;
-            error => {
-                json resPayload = {
-                    "message": "Non json payload is not accepted"
-                };
-                res.setJsonPayload(untaint resPayload, contentType = "application/json");
-                res.statusCode = http:BAD_REQUEST_400;  
-                return res;  
-            }
-        }
-        
-    } else if (contentType.contains("application/json")) {
+    string ecommOrderId = orderRec.ecommOrderId;
+    json orderJson = check <json> orderRec;
+    string orderString = orderJson.toString();
 
-        match <json> req.getJsonPayload() {
-            json j => orderJson = j;
-            error => {
-                json resPayload = {
-                    "message": "Non json payload is not accepted"
-                };
-                res.setJsonPayload(untaint resPayload, contentType = "application/json");
-                res.statusCode = http:BAD_REQUEST_400;
-                return res;    
-            }
-        }
-
-    } else {
-
-        json resPayload = {
-            "message": "Content-Type " + contentType + " is not accepted"
-        };
-        res.setJsonPayload(untaint resPayload, contentType = "application/json");
-        res.statusCode = http:BAD_REQUEST_400;
-        return res;
-    }
-
-    string ecommOrderId = check <string> orderJson.ecommOrderId;
-
-    // log:printInfo("Received order " + ecommOrderId + " of type " + kind + ".\nPayload: " + orderJson.toString());
-    log:printInfo("Received order " + ecommOrderId + " of type " + kind);
+    log:printInfo("Received order " + ecommOrderId + " of type " + kind + ". Payload: \n" + orderString);
     
-    match (orderInboundQueue.createTextMessage(orderJson.toString())) {
+    match (orderInboundQueue.createTextMessage(orderString)) {
         
         error e => {
             log:printError("Error occurred while creating message", err = e);

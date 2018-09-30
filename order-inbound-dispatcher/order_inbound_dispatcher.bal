@@ -15,10 +15,11 @@ service<http:Service> orderAPI bind orderImportInboundDispatcherListener {
         methods:["POST"],
         path: "/",
         consumes: ["text/plain", "application/json"],
-        produces: ["application/json"]
+        produces: ["application/json"],
+        body: "orderRec"
     }
-    addB2COrder (endpoint outboundEp, http:Request req) {
-        http:Response res = addOrder(req, "b2c");
+    addB2COrder (endpoint outboundEp, http:Request req, Order orderRec) {
+        http:Response res = addOrder(req, orderRec, "b2c");
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
     }
 
@@ -26,10 +27,11 @@ service<http:Service> orderAPI bind orderImportInboundDispatcherListener {
         methods:["POST"],
         path: "/b2b",
         consumes: ["text/plain", "application/json"],
-        produces: ["application/json"]
+        produces: ["application/json"],
+        body: "orderRec"
     }
-    addB2BOrder (endpoint outboundEp, http:Request req) {
-        http:Response res = addOrder(req, "b2b");
+    addB2BOrder (endpoint outboundEp, http:Request req, Order orderRec) {
+        http:Response res = addOrder(req, orderRec, "b2b");
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
     }
 
@@ -37,10 +39,11 @@ service<http:Service> orderAPI bind orderImportInboundDispatcherListener {
         methods:["POST"],
         path: "/foc",
         consumes: ["text/plain", "application/json"],
-        produces: ["application/json"]
+        produces: ["application/json"],
+        body: "orderRec"
     }
-    addFoCOrder (endpoint outboundEp, http:Request req) {
-        http:Response res = addOrder(req, "foc");
+    addFoCOrder (endpoint outboundEp, http:Request req, Order orderRec) {
+        http:Response res = addOrder(req, orderRec, "foc");
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
     }        
 }
