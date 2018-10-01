@@ -9,7 +9,3 @@ public type Order record {
     string lastUpdatedTime,
     string orderType,
 };
-
-public type Orders record {
-    Order[] orders,
-};

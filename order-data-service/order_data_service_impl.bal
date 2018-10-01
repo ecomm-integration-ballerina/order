@@ -4,6 +4,8 @@ import ballerina/config;
 import ballerina/log;
 import ballerina/sql;
 
+type orderBatchType string|int|float;
+
 endpoint mysql:Client orderDB {
     host: config:getAsString("order.db.host"),
     port: config:getAsInt("order.db.port"),
@@ -124,6 +126,59 @@ public function getOrders (http:Request req)
 
     resp.setJsonPayload(untaint jsonReturnValue);
     return resp;
+}
+
+public function batchUpdateProcessFlag (http:Request req, Orders orders)
+                    returns http:Response {
+
+    orderBatchType[][] orderBatches;
+    foreach i, orderRec in orders.orders {
+        orderBatchType[] ord = [orderRec.processFlag, orderRec.retryCount, orderRec.transactionId];
+        orderBatches[i] = ord;
+    }
+    
+    string sqlString = "UPDATE order_import_request SET PROCESS_FLAG = ?, RETRY_COUNT = ? where TRANSACTION_ID = ?";
+
+    log:printInfo("Calling orderDB->batchUpdateProcessFlag");
+    
+    json resJson;
+    boolean isSuccessful;
+    transaction with retries = 5, oncommit = onCommitFunction, onabort = onAbortFunction {                              
+
+        var retBatch = orderDB->batchUpdate(sqlString, ... orderBatches);
+        match retBatch {
+            int[] counts => {
+                foreach count in counts {
+                    if (count < 1) {
+                        log:printError("Calling orderDB->batchUpdateProcessFlag failed", err = ());
+                        isSuccessful = false;
+                        abort;
+                    } else {
+                        log:printInfo("Calling orderDB->batchUpdateProcessFlag succeeded");
+                        isSuccessful = true;
+                    }
+                }
+            }
+            error err => {
+                log:printError("Calling orderDB->batchUpdateProcessFlag failed", err = err);
+                retry;
+            }
+        }      
+    }     
+
+    int statusCode;
+    if (isSuccessful) {
+        resJson = { "Status": "ProcessFlags updated"};
+        statusCode = http:ACCEPTED_202;
+    } else {
+        resJson = { "Status": "ProcessFlags not updated" };
+        statusCode = http:INTERNAL_SERVER_ERROR_500;
+    }
+
+    http:Response res = new;
+    res.setJsonPayload(resJson);
+    res.statusCode = statusCode;
+    return res;
 }
 
 function onCommitFunction(string transactionId) {

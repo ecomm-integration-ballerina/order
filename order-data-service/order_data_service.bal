@@ -28,5 +28,15 @@ service<http:Service> orderDataAPI bind orderListener {
     getOrders (endpoint outboundEp, http:Request req) {
         http:Response res = getOrders(req);
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
-    }    
+    }   
+
+    @http:ResourceConfig {
+        methods:["PUT"],
+        path: "/process-flag/batch/",
+        body: "orders"
+    }
+    batchUpdateProcessFlag (endpoint outboundEp, http:Request req, Orders orders) {
+        http:Response res = batchUpdateProcessFlag(req, orders);
+        outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
+    }     
 }
