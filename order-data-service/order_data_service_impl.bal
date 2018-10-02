@@ -3,6 +3,7 @@ import ballerina/http;
 import ballerina/config;
 import ballerina/log;
 import ballerina/sql;
+import ballerina/mime;
 
 type orderBatchType string|int|float;
 
@@ -16,7 +17,7 @@ endpoint mysql:Client orderDB {
     dbOptions: { useSSL: false, serverTimezone:"UTC" }
 };
 
-public function addOrder (http:Request req, Order orderJson) returns http:Response {
+public function addOrder (http:Request req, OrderDAO orderJson) returns http:Response {
 
     string sqlString = "INSERT INTO order_import_request(ORDER_NO,REQUEST,PROCESS_FLAG,
         RETRY_COUNT,ERROR_MESSAGE,ORDER_TYPE) VALUES (?,?,?,?,?,?)";
@@ -25,8 +26,9 @@ public function addOrder (http:Request req, Order orderJson) returns http:Respon
 
     boolean isSuccessful;
     transaction with retries = 5, oncommit = onCommitFunction, onabort = onAbortFunction {                              
-
-        var ret = orderDB->update(sqlString, orderJson.orderNo, orderJson.request, 
+        
+        string base64Request = check mime:base64EncodeString(orderJson.request.toString());
+        var ret = orderDB->update(sqlString, orderJson.orderNo, base64Request, 
             orderJson.processFlag, orderJson.retryCount, orderJson.errorMessage, 
             orderJson.orderType);
 
@@ -109,26 +111,33 @@ public function getOrders (http:Request req)
     string[] processFlagArray = processFlag.split(",");
     sql:Parameter processFlagPara = { sqlType: sql:TYPE_VARCHAR, value: processFlagArray };
 
-    var ret = orderDB->select(sqlString, Order, processFlagPara, retryCount, resultsLimit);
+    var ret = orderDB->select(sqlString, OrderDAO, loadToMemory = true, processFlagPara, retryCount, resultsLimit);
 
     http:Response resp = new;
-    json jsonReturnValue;
+    json[] jsonReturnValue;
     match ret {
-        table tableReturned => {
-            jsonReturnValue = check <json> tableReturned;
+        table<OrderDAO> tableOrderDAO => {
+            foreach orderRec in tableOrderDAO {
+                io:StringReader sr = new(check mime:base64DecodeString(orderRec.request.toString()));
+                json requestJson = check sr.readJson();
+                orderRec.request = requestJson;
+                jsonReturnValue[lengthof jsonReturnValue] = check <json> orderRec;
+            }
+
+            resp.setJsonPayload(untaint jsonReturnValue);
             resp.statusCode = http:OK_200;
         }
         error err => {
-            jsonReturnValue = { "Status": "Internal Server Error", "Error": err.message };
+            json respPayload = { "Status": "Internal Server Error", "Error": err.message };
+            resp.setJsonPayload(untaint respPayload);
             resp.statusCode = http:INTERNAL_SERVER_ERROR_500;
         }
     }
 
-    resp.setJsonPayload(untaint jsonReturnValue);
     return resp;
 }
 
-public function batchUpdateProcessFlag (http:Request req, Orders orders)
+public function batchUpdateProcessFlag (http:Request req, OrdersDAO orders)
                     returns http:Response {
 
     orderBatchType[][] orderBatches;

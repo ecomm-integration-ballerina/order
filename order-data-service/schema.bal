@@ -1,7 +1,7 @@
-public type Order record {
+public type OrderDAO record {
     int transactionId,
     string orderNo,
-    string request,
+    json request,
     string processFlag,
     int retryCount,
     string errorMessage,
@@ -10,6 +10,11 @@ public type Order record {
     string orderType,
 };
 
-public type Orders record {
-    Order[] orders,
+public type OrdersDAO record {
+    OrderDAO[] orders,
 };
+
+public function toString(OrderDAO o) returns string {
+    json j = check <json> o;
+    return j.toString();
+}

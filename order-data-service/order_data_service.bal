@@ -16,7 +16,7 @@ service<http:Service> orderDataAPI bind orderListener {
         path: "/",
         body: "orderJson"
     }
-    addOrder (endpoint outboundEp, http:Request req, Order orderJson) {
+    addOrder (endpoint outboundEp, http:Request req, OrderDAO orderJson) {
         http:Response res = addOrder(req, untaint orderJson);
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
     }
@@ -35,7 +35,7 @@ service<http:Service> orderDataAPI bind orderListener {
         path: "/process-flag/batch/",
         body: "orders"
     }
-    batchUpdateProcessFlag (endpoint outboundEp, http:Request req, Orders orders) {
+    batchUpdateProcessFlag (endpoint outboundEp, http:Request req, OrdersDAO orders) {
         http:Response res = batchUpdateProcessFlag(req, orders);
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
     }     
