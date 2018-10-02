@@ -1,6 +1,7 @@
 import ballerina/http;
 import ballerina/log;
 import ballerina/mysql;
+import raj/orders.model as model;
 
 endpoint http:Listener orderImportInboundDispatcherListener {
     port: 8280
@@ -18,7 +19,7 @@ service<http:Service> orderAPI bind orderImportInboundDispatcherListener {
         produces: ["application/json"],
         body: "orderRec"
     }
-    addB2COrder (endpoint outboundEp, http:Request req, Order orderRec) {
+    addB2COrder (endpoint outboundEp, http:Request req, model:Order orderRec) {
         http:Response res = addOrder(req, orderRec, "b2c");
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
     }
@@ -30,7 +31,7 @@ service<http:Service> orderAPI bind orderImportInboundDispatcherListener {
         produces: ["application/json"],
         body: "orderRec"
     }
-    addB2BOrder (endpoint outboundEp, http:Request req, Order orderRec) {
+    addB2BOrder (endpoint outboundEp, http:Request req, model:Order orderRec) {
         http:Response res = addOrder(req, orderRec, "b2b");
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
     }
@@ -42,7 +43,7 @@ service<http:Service> orderAPI bind orderImportInboundDispatcherListener {
         produces: ["application/json"],
         body: "orderRec"
     }
-    addFoCOrder (endpoint outboundEp, http:Request req, Order orderRec) {
+    addFoCOrder (endpoint outboundEp, http:Request req, model:Order orderRec) {
         http:Response res = addOrder(req, orderRec, "foc");
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
     }        
