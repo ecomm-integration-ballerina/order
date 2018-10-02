@@ -14,7 +14,7 @@ public function addOrder (http:Request req, model:Order orderRec, string kind) r
 
     http:Response res = new;
     string ecommOrderId = orderRec.ecommOrderId;
-    string orderString = model:toString(orderRec);
+    string orderString = model:orderToString(orderRec);
 
     log:printInfo("Received order " + ecommOrderId + " of type " + kind + ". Payload: \n" + orderString);
     

@@ -5,6 +5,7 @@ import ballerina/task;
 import ballerina/runtime;
 import ballerina/io;
 import ballerina/mb;
+import raj/orders.model as model;
 
 endpoint mb:SimpleTopicPublisher orderOutboundPublisher {
     host: config:getAsString("order.mb.host"),
@@ -49,7 +50,8 @@ function doOrderOutboundDispatcherETL() returns  error? {
         http:Response resp => {
             match resp.getJsonPayload() {
                 json jsonOrderArray => { 
-                    Order[] orders = check <Order[]> jsonOrderArray;
+                    io:println(jsonOrderArray);
+                    model:OrderDAO[] orders = check <model:OrderDAO[]> jsonOrderArray;
                     // terminate the flow if no orders found
                     if (lengthof orders == 0) {
                         return;
@@ -78,7 +80,7 @@ function doOrderOutboundDispatcherETL() returns  error? {
     return ();
 }
 
-function publishOrdersToTopic (Order[] orders) {
+function publishOrdersToTopic (model:OrderDAO[] orders) {
 
     foreach orderRec in orders {
 
@@ -112,7 +114,7 @@ function handleError(error e) {
     log:printError("Error in Order Outbound Dispatcher ETL", err = e);
 }
 
-function batchUpdateProcessFlagsToP (Order[] orders) returns boolean{
+function batchUpdateProcessFlagsToP (model:OrderDAO[] orders) returns boolean{
 
     json batchUpdateProcessFlagsPayload;
     foreach i, orderRec in orders {

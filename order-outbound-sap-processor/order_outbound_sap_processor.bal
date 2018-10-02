@@ -3,6 +3,7 @@ import ballerina/config;
 import ballerina/log;
 import ballerina/mb;
 import ballerina/http;
+import raj/orders.model as model;
 
 endpoint http:Client orderDataEndpoint {
     url: config:getAsString("order.api.url")
@@ -24,13 +25,13 @@ service<mb:Consumer> orderOutboundTopicSubscriber bind orderOutboundTopic {
             string orderString => {
                 io:StringReader sr = new(orderString);
                 orderJson = check sr.readJson();
-                Order orderRec = check <Order> orderJson;
+                model:OrderDAO orderRec = check <model:OrderDAO> orderJson;
                 string orderNo = orderRec.orderNo;
                 string orderType = orderRec.orderType;
 
                 log:printInfo("Received order " + orderNo + " of type " + orderType + " from orderOutboundTopic");
 
-                handleOrder(orderRec);
+                // processOrderToSap(orderRec);
             }
 
             error e => {
@@ -40,34 +41,35 @@ service<mb:Consumer> orderOutboundTopicSubscriber bind orderOutboundTopic {
     }
 }
 
-function handleOrder (Order orderRec) {
-    
-    json payload = {
-        "orderNo": orderJson.ecommOrderId,
-        "request": orderJson,
-        "processFlag": "N",
-        "retryCount": 0,
-        "errorMessage": "None",
-        "orderType": kind
-    };
+// function processOrderToSap (model:Order orderRec) returns boolean {
 
-    http:Request req = new;
-    req.setJsonPayload(untaint payload);
-    var response = orderDataEndpoint->post("/", req);
+//     xml orders = xml `<ZMOTORDERS>
+//             <IDOC BEGIN="1">
+//             </IDOC>
+//         </ZMOTORDERS>`;
 
-    match response {
-        http:Response resp => {
-            match resp.getJsonPayload() {
-                json j => {
-                    log:printInfo("Response from orderDataEndpoint : " + j.toString());
-                }
-                error err => {
-                    log:printError("Response from orderDataEndpoint is not a json : " + err.message, err = err);
-                }
-            }
-        }
-        error err => {
-            log:printError("Error while calling orderDataEndpoint : " + err.message, err = err);
-        }
-    }    
-}
+//     xml ordersHeader = xml `<EDI_DC40 SEGMENT="1">
+//             <TABNAM>{{orderRec.orderNo}}</TABNAM>
+//             <MANDT>301</MANDT>
+//             <DOCNUM>0000002342249222</DOCNUM>
+//             <DOCREL>740</DOCREL>
+//             <STATUS>30</STATUS>
+//             <DIRECT>1</DIRECT>
+//             <OUTMOD>2</OUTMOD>
+//             <IDOCTYP>ORDERS05</IDOCTYP>
+//             <CIMTYP>ZMOTORDERS</CIMTYP>
+//             <MESTYP>ZMOTORDERS</MESTYP>
+//             <STDMES>ZMOTOR</STDMES>
+//             <SNDPOR>WSO2_MOTO</SNDPOR>
+//             <SNDPRT>LS</SNDPRT>
+//             <SNDPRN>ZMOTO_ECOM</SNDPRN>
+//             <RCVPOR>WSO2_MOTO</RCVPOR>
+//             <RCVPRT>LS</RCVPRT>
+//             <RCVPRN>Z_SFDC</RCVPRN>
+//             <CREDAT>20180927</CREDAT>
+//             <CRETIM>202544</CRETIM>
+//             <ARCKEY>urn:uuid:61AE6D7FBD8922F9561503672302714</ARCKEY>
+//         </EDI_DC40>`;    
+
+//     return true;
+// }

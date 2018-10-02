@@ -17,7 +17,7 @@ endpoint mysql:Client orderDB {
     dbOptions: { useSSL: false, serverTimezone:"UTC" }
 };
 
-public function addOrder (http:Request req, OrderDAO orderJson) returns http:Response {
+public function addOrder (http:Request req, model:OrderDAO orderJson) returns http:Response {
 
     string sqlString = "INSERT INTO order_import_request(ORDER_NO,REQUEST,PROCESS_FLAG,
         RETRY_COUNT,ERROR_MESSAGE,ORDER_TYPE) VALUES (?,?,?,?,?,?)";
@@ -111,19 +111,19 @@ public function getOrders (http:Request req)
     string[] processFlagArray = processFlag.split(",");
     sql:Parameter processFlagPara = { sqlType: sql:TYPE_VARCHAR, value: processFlagArray };
 
-    var ret = orderDB->select(sqlString, OrderDAO, loadToMemory = true, processFlagPara, retryCount, resultsLimit);
+    var ret = orderDB->select(sqlString, model:OrderDAO, loadToMemory = true, processFlagPara, retryCount, resultsLimit);
 
     http:Response resp = new;
     json[] jsonReturnValue;
     match ret {
-        table<OrderDAO> tableOrderDAO => {
+        table<model:OrderDAO> tableOrderDAO => {
             foreach orderRec in tableOrderDAO {
                 io:StringReader sr = new(check mime:base64DecodeString(orderRec.request.toString()));
                 json requestJson = check sr.readJson();
                 orderRec.request = requestJson;
                 jsonReturnValue[lengthof jsonReturnValue] = check <json> orderRec;
             }
-
+            io:println(jsonReturnValue);
             resp.setJsonPayload(untaint jsonReturnValue);
             resp.statusCode = http:OK_200;
         }
@@ -134,10 +134,12 @@ public function getOrders (http:Request req)
         }
     }
 
+    
+
     return resp;
 }
 
-public function batchUpdateProcessFlag (http:Request req, OrdersDAO orders)
+public function batchUpdateProcessFlag (http:Request req, model:OrdersDAO orders)
                     returns http:Response {
 
     orderBatchType[][] orderBatches;
