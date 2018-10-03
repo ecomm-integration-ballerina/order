@@ -4,6 +4,7 @@ import ballerina/log;
 import ballerina/mb;
 import ballerina/http;
 import ballerina/time;
+import wso2/soap;
 import raj/orders.model as model;
 
 type Address record {
@@ -15,7 +16,38 @@ type Address record {
     string zip,
 };
 
+endpoint soap:Client sapClient {
+    clientConfig: {
+        url: "http://localhost:9000"
+    }
+};
+
 function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
+
+    xml idoc = createIDOC(orderDAORec);
+
+    soap:SoapRequest soapRequest = {
+        soapAction: "urn:addOrder",
+        payload: idoc
+    };
+
+    var details = sapClient->sendReceive("/services/SAPService", soapRequest);
+
+    match details {
+        soap:SoapResponse soapResponse => {
+            io:println("1111");
+            io:println(soapResponse);
+        }
+        soap:SoapError soapError => {
+            io:println("2222");
+            io:println(soapError);
+        }
+    }
+
+    return true;
+}
+
+function createIDOC (model:OrderDAO orderDAORec) returns xml {
 
     model:Order orderRec = check <model:Order> orderDAORec.request;
     time:Time createdAt = time:parse(orderRec.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -329,7 +361,7 @@ function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
 
     io:println(orders); 
 
-    return true;
+    return orders;
 }
 
 function getAddress(string countryCode) returns Address {
