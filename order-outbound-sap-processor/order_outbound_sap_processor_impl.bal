@@ -18,7 +18,7 @@ type Address record {
 
 endpoint soap:Client sapClient {
     clientConfig: {
-        url: "http://localhost:9000"
+        url: "http://localhost:8285/ecomm-backend/order"
     }
 };
 
@@ -35,11 +35,11 @@ function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
 
     match details {
         soap:SoapResponse soapResponse => {
-            io:println("1111");
+            // io:println("1111");
             io:println(soapResponse);
         }
         soap:SoapError soapError => {
-            io:println("2222");
+            // io:println("2222");
             io:println(soapError);
         }
     }
