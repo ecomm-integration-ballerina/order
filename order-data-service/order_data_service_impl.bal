@@ -139,6 +139,59 @@ public function getOrders (http:Request req)
     return resp;
 }
 
+public function updateProcessFlag (http:Request req, model:OrderDAO orderJson)
+                    returns http:Response {
+
+    log:printInfo("Calling orderDB->updateProcessFlag for TID=" + orderJson.transactionId + 
+                    ", OrderNo=" + orderJson.orderNo);
+    string sqlString = "UPDATE order_import_request SET PROCESS_FLAG = ?, RETRY_COUNT = ?, ERROR_MESSAGE = ? 
+                            where TRANSACTION_ID = ?";
+
+    json resJson;
+    boolean isSuccessful;
+    transaction with retries = 5, oncommit = onCommitFunction, onabort = onAbortFunction {                              
+
+        var ret = orderDB->update(sqlString, orderJson.processFlag, orderJson.retryCount, 
+                                    orderJson.errorMessage, orderJson.transactionId);
+
+        match ret {
+            int updatedRows => {
+                if (updatedRows < 1) {
+                    log:printError("Calling orderDB->updateProcessFlag for TID=" + orderJson.transactionId + 
+                                ", OrderNo=" + orderJson.orderNo + " failed", err = ());
+                    isSuccessful = false;
+                    abort;
+                } else {
+                    log:printInfo("Calling orderDB->updateProcessFlag for TID=" + orderJson.transactionId + 
+                                ", OrderNo=" + orderJson.orderNo + " succeeded");
+                    isSuccessful = true;
+                }
+            }
+            error err => {
+                log:printError("Calling orderDB->updateProcessFlag for TID=" + orderJson.transactionId 
+                    + " failed", err = err);
+                isSuccessful = false;
+                retry;
+            }
+        } 
+
+    }     
+
+    int statusCode;
+    if (isSuccessful) {
+        resJson = { "Status": "ProcessFlag is updated for order : " + orderJson.transactionId };
+        statusCode = http:ACCEPTED_202;
+    } else {
+        resJson = { "Status": "Failed to update ProcessFlag for order : " + orderJson.transactionId };
+        statusCode = http:INTERNAL_SERVER_ERROR_500;
+    }
+
+    http:Response res = new;
+    res.setJsonPayload(resJson);
+    res.statusCode = statusCode;
+    return res;
+}
+
 public function batchUpdateProcessFlag (http:Request req, model:OrdersDAO orders)
                     returns http:Response {
 

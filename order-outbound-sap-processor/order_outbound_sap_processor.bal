@@ -6,10 +6,6 @@ import ballerina/http;
 import ballerina/time;
 import raj/orders.model as model;
 
-endpoint http:Client orderDataEndpoint {
-    url: config:getAsString("order.api.url")
-};
-
 endpoint mb:SimpleTopicSubscriber orderOutboundTopic {
     host: config:getAsString("order.mb.host"),
     port: config:getAsInt("order.mb.port"),

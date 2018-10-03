@@ -16,6 +16,12 @@ type Address record {
     string zip,
 };
 
+int maxRetryCount = config:getAsInt("order.outbound.sap.maxRetryCount");
+
+endpoint http:Client orderDataServiceEndpoint {
+    url: config:getAsString("order.api.url")
+};
+
 endpoint soap:Client sapClient {
     clientConfig: {
         url: "http://localhost:8285/ecomm-backend/order"
@@ -24,27 +30,62 @@ endpoint soap:Client sapClient {
 
 function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
 
-    xml idoc = createIDOC(orderDAORec);
-
     soap:SoapRequest soapRequest = {
         soapAction: "urn:addOrder",
-        payload: idoc
+        payload: createIDOC(orderDAORec)
     };
 
-    var details = sapClient->sendReceive("/services/SAPService", soapRequest);
+    var details = sapClient->sendReceive("/", soapRequest);
 
     match details {
         soap:SoapResponse soapResponse => {
-            // io:println("1111");
-            io:println(soapResponse);
+            xml payload = soapResponse.payload;
+            if (payload.msg.getTextValue() == "Errored") {
+                updateProcessFlag(orderDAORec.transactionId, orderDAORec.retryCount + 1, "E", "Errored");
+            } else {
+                updateProcessFlag(orderDAORec.transactionId, orderDAORec.retryCount, "C", "Sent to SAP");
+            }
         }
         soap:SoapError soapError => {
-            // io:println("2222");
-            io:println(soapError);
+            updateProcessFlag(orderDAORec.transactionId, orderDAORec.retryCount + 1, "E", soapError.message);
         }
     }
 
     return true;
+}
+
+function updateProcessFlag(int tid, int retryCount, string processFlag, string errorMessage) {
+
+    json updateOrder = {
+        "transactionId": tid,
+        "processFlag": processFlag,
+        "retryCount": retryCount,
+        "errorMessage": errorMessage
+    };
+
+    http:Request req = new;
+    req.setJsonPayload(untaint updateOrder);
+
+    var response = orderDataServiceEndpoint->put("/process-flag/", req);
+
+    match response {
+        http:Response resp => {
+            int httpCode = resp.statusCode;
+            if (httpCode == 202) {
+                if (processFlag == "E" && retryCount > maxRetryCount) {
+                    notifyOperation();
+                }
+            }
+        }
+        error err => {
+            log:printError("Error while calling orderDataServiceEndpoint", err = err);
+        }
+    }
+}
+
+function notifyOperation() {
+    // sending email alerts
+    log:printInfo("Notifying operations");
 }
 
 function createIDOC (model:OrderDAO orderDAORec) returns xml {

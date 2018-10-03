@@ -33,6 +33,16 @@ service<http:Service> orderDataAPI bind orderListener {
 
     @http:ResourceConfig {
         methods:["PUT"],
+        path: "/process-flag/",
+        body: "orderJson"
+    }
+    updateProcessFlag (endpoint outboundEp, http:Request req, model:OrderDAO orderJson) {
+        http:Response res = updateProcessFlag(req, untaint orderJson);
+        outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
+    }
+
+    @http:ResourceConfig {
+        methods:["PUT"],
         path: "/process-flag/batch/",
         body: "orders"
     }
