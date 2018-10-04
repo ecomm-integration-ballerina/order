@@ -24,7 +24,7 @@ endpoint http:Client orderDataServiceEndpoint {
 
 endpoint soap:Client sapClient {
     clientConfig: {
-        url: "http://localhost:8285/ecomm-backend/order"
+        url: config:getAsString("sap.api.url")
     }
 };
 
