@@ -65,6 +65,7 @@ public type Shipment record {
     record {
         string salesOffice,
         string jurisdictionCode,
+        string county,
     } additionalProperties,
     Address shippingAddress,
 };
@@ -79,6 +80,7 @@ public type Payment record {
         string ^"eccCustomAttributes.paymentType",
         string jurisdictionCode,
         string billToId,
+        string county,
     } additionalProperties,
     Address billingAddress,
     string token,
@@ -88,6 +90,12 @@ public type Address record {
     string countryCode,
     string firstName,
     string lastName,
+    string address1,
+    string address2,
+    string phone,
+    string city,
+    string stateCode,
+    string postalCode,
 };
 
 public function orderToString(Order o) returns string {
