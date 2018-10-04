@@ -78,6 +78,7 @@ public type Payment record {
         string prePayment,
         string ^"eccCustomAttributes.paymentType",
         string jurisdictionCode,
+        string billToId,
     } additionalProperties,
     Address billingAddress,
     string token,

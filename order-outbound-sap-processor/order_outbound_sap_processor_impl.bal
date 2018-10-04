@@ -30,31 +30,47 @@ endpoint soap:Client sapClient {
 
 function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
 
+    int tid = orderDAORec.transactionId;
+    string orderNo = orderDAORec.orderNo;
+    int retryCount = orderDAORec.retryCount ;
+
+    xml idoc = createIDOC(orderDAORec);
     soap:SoapRequest soapRequest = {
         soapAction: "urn:addOrder",
-        payload: createIDOC(orderDAORec)
+        payload: idoc
     };
+
+    log:printInfo("Sending to ecc / " + tid + " / " + orderNo
+                        + ". Payload : " + io:sprintf("%l", idoc));
 
     var details = sapClient->sendReceive("/", soapRequest);
 
     match details {
         soap:SoapResponse soapResponse => {
+
             xml payload = soapResponse.payload;
             if (payload.msg.getTextValue() == "Errored") {
-                updateProcessFlag(orderDAORec.transactionId, orderDAORec.retryCount + 1, "E", "Errored");
+
+                log:printInfo("Failed to send to ecc / " + tid + " / " + orderNo
+                    + ". Payload : " + io:sprintf("%l", payload));
+                updateProcessFlag(tid, orderNo, retryCount + 1, "E", "Errored");
             } else {
-                updateProcessFlag(orderDAORec.transactionId, orderDAORec.retryCount, "C", "Sent to SAP");
+
+                log:printInfo("Sent to ecc / " + tid + " / " + orderNo);
+                updateProcessFlag(tid, orderNo, retryCount, "C", "Sent to SAP");
             }
         }
         soap:SoapError soapError => {
-            updateProcessFlag(orderDAORec.transactionId, orderDAORec.retryCount + 1, "E", soapError.message);
+            log:printInfo("Failed to send to ecc / " + tid + " / " + orderNo
+                + ". Payload : " + soapError.message);
+            updateProcessFlag(tid, orderNo, retryCount + 1, "E", soapError.message);
         }
     }
 
     return true;
 }
 
-function updateProcessFlag(int tid, int retryCount, string processFlag, string errorMessage) {
+function updateProcessFlag(int tid, string orderNo, int retryCount, string processFlag, string errorMessage) {
 
     json updateOrder = {
         "transactionId": tid,
@@ -65,6 +81,9 @@ function updateProcessFlag(int tid, int retryCount, string processFlag, string e
 
     http:Request req = new;
     req.setJsonPayload(untaint updateOrder);
+    
+    log:printInfo("Calling orderDataServiceEndpoint.updateProcessFlag / " 
+        + tid + " / " + orderNo + ". Payload : " + updateOrder.toString());
 
     var response = orderDataServiceEndpoint->put("/process-flag/", req);
 
@@ -78,7 +97,7 @@ function updateProcessFlag(int tid, int retryCount, string processFlag, string e
             }
         }
         error err => {
-            log:printError("Error while calling orderDataServiceEndpoint", err = err);
+            log:printError("Error while calling orderDataServiceEndpoint.updateProcessFlag", err = err);
         }
     }
 }
@@ -173,6 +192,12 @@ function createIDOC (model:OrderDAO orderDAORec) returns xml {
             </ZECOMMEDKA2>
             <E1EDKA3 SEGMENT="1" />
         </E1EDKA1>`; 
+
+    if (orderDAORec.orderType == "b2b") {
+        xml bilToHeader = xml `<PARTN>{{orderRec.payments[0].additionalProperties.billToId}}</PARTN>`;
+        xml billingHeaderChildren = billingHeader.* + bilToHeader;
+        billingHeader.setChildren(billingHeaderChildren);
+    }
 
     xml shippingHeader = xml `<E1EDKA1 SEGMENT="1">
             <PARVW>WE</PARVW>												
@@ -399,8 +424,6 @@ function createIDOC (model:OrderDAO orderDAORec) returns xml {
     children = orders.selectDescendants("IDOC").* + E1CUCFGHeader + E1EDL37Header + tamHeader + tprHeader + ttxHeader
         + tfrHeader + tftHeader;
     orders.selectDescendants("IDOC").setChildren(children);
-
-    io:println(orders); 
 
     return orders;
 }
