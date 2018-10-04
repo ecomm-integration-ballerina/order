@@ -67,6 +67,7 @@ public type Shipment record {
         string jurisdictionCode,
         string county,
     } additionalProperties,
+    string[] productLineItemIds,
     Address shippingAddress,
 };
 

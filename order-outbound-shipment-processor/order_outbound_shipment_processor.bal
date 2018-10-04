@@ -28,7 +28,7 @@ service<mb:Consumer> orderOutboundTopicSubscriber bind orderOutboundTopic {
 
                 log:printInfo("Received order " + orderNo + " of type " + orderType + " from orderOutboundTopic");
 
-                boolean success = processOrderToShipmentAPI(orderDAORec);
+                processOrderToShipmentAPI(orderDAORec);
             }
 
             error e => {

@@ -7,15 +7,6 @@ import ballerina/time;
 import wso2/soap;
 import raj/orders.model as model;
 
-type Address record {
-    string countryCode,
-    string stateCode,
-    string add1,
-    string add2,
-    string city,
-    string zip,
-};
-
 int maxRetryCount = config:getAsInt("order.outbound.shipment.maxRetryCount");
 
 endpoint http:Client orderDataServiceEndpoint {
@@ -26,7 +17,7 @@ endpoint http:Client shipmentDataServiceEndpoint {
     url: config:getAsString("shipment.api.url")
 };
 
-function processOrderToShipmentAPI (model:OrderDAO orderDAORec) returns boolean {
+function processOrderToShipmentAPI (model:OrderDAO orderDAORec) {
 
     int tid = orderDAORec.transactionId;
     string orderNo = orderDAORec.orderNo;
@@ -34,62 +25,28 @@ function processOrderToShipmentAPI (model:OrderDAO orderDAORec) returns boolean 
 
     json payload = createShipmentPayload(orderDAORec);
 
-
+    io:println(payload);
     http:Request req = new;
     req.setJsonPayload(untaint payload);
     
     log:printInfo("Calling shipmentDataServiceEndpoint.insert / " 
         + tid + " / " + orderNo + ". Payload : " + payload.toString());
 
-    var response = shipmentDataServiceEndpoint->post("/", req);
-    io:println(response);
+    var response = shipmentDataServiceEndpoint->post("/batch", req);
+
     match response {
         http:Response resp => {
             int httpCode = resp.statusCode;
-            if (httpCode == 202) {
-                // if (processFlag == "E" && retryCount > maxRetryCount) {
-                //     // notifyOperation();
-                // }
+            if (httpCode == 200) {
+                log:printInfo("Sent to shipment / " + tid + " / " + orderNo);
+            } else {
+                log:printInfo("Failed to send to shipment / " + tid + " / " + orderNo);
             }
         }
         error err => {
             log:printError("Error while calling orderDataServiceEndpoint.updateProcessFlag", err = err);
         }
     }
-
-    // soap:SoapRequest soapRequest = {
-    //     soapAction: "urn:addOrder",
-    //     payload: idoc
-    // };
-
-    // log:printInfo("Sending to ecc / " + tid + " / " + orderNo
-    //                     + ". Payload : " + io:sprintf("%l", idoc));
-
-    // var details = sapClient->sendReceive("/", soapRequest);
-
-    // match details {
-    //     soap:SoapResponse soapResponse => {
-
-    //         xml payload = soapResponse.payload;
-    //         if (payload.msg.getTextValue() == "Errored") {
-
-    //             log:printInfo("Failed to send to ecc / " + tid + " / " + orderNo
-    //                 + ". Payload : " + io:sprintf("%l", payload));
-    //             updateProcessFlag(tid, orderNo, retryCount + 1, "E", "Errored");
-    //         } else {
-
-    //             log:printInfo("Sent to ecc / " + tid + " / " + orderNo);
-    //             updateProcessFlag(tid, orderNo, retryCount, "C", "Sent to SAP");
-    //         }
-    //     }
-    //     soap:SoapError soapError => {
-    //         log:printInfo("Failed to send to ecc / " + tid + " / " + orderNo
-    //             + ". Payload : " + soapError.message);
-    //         updateProcessFlag(tid, orderNo, retryCount + 1, "E", soapError.message);
-    //     }
-    // }
-
-    return true;
 }
 
 function updateProcessFlag(int tid, string orderNo, int retryCount, string processFlag, string errorMessage) {
@@ -132,37 +89,46 @@ function notifyOperation() {
 function createShipmentPayload (model:OrderDAO orderDAORec) returns json {
 
     model:Order orderRec = check <model:Order> orderDAORec.request;
-    string shipToCustomerName = orderRec.shipments[0].shippingAddress.firstName;
 
-    json payload = {
-        "shipToEmail": orderRec.customerEmail,
-        "shipToCustomerName": shipToCustomerName,
-        "shipToAddressLine1": orderRec.shipments[0].shippingAddress.address1,
-        "shipToAddressLine2": orderRec.shipments[0].shippingAddress.address2,
-        "shipToAddressLine3":"",
-        "shipToContactNumber": orderRec.shipments[0].shippingAddress.phone,
-        "shipToAddressLine4":"",
-        "shipToCity": orderRec.shipments[0].shippingAddress.city,
-        "shipToState": orderRec.shipments[0].shippingAddress.stateCode,
-        "shipToCountry": orderRec.shipments[0].shippingAddress.countryCode,
-        "shipToZip": orderRec.shipments[0].shippingAddress.postalCode,
-        "shipToCounty": orderRec.shipments[0].additionalProperties.county,
-        "shipToProvince": orderRec.shipments[0].shippingAddress.stateCode,
-        "billToAddressLine1": orderRec.payments[0].billingAddress.address1,
-        "billToAddressLine2": orderRec.payments[0].billingAddress.address2,
-        "billToAddressLine3":"",
-        "billToAddressLine4":"",
-        "billToContactNumber": orderRec.payments[0].billingAddress.phone,
-        "billToCity": orderRec.payments[0].billingAddress.city,
-        "billToState": orderRec.payments[0].billingAddress.stateCode,
-        "billToCountry": orderRec.payments[0].billingAddress.countryCode,
-        "billToZip": orderRec.payments[0].billingAddress.postalCode,
-        "billToCounty": orderRec.payments[0].additionalProperties.county,
-        "billToProvince": orderRec.payments[0].billingAddress.stateCode,
-        "orderNo": orderRec.ecommOrderId,
-        "lineNumber": "2",
-        "contextId": orderRec.context.id
-    };
+    json jsonPayload;
+    int lines = 0;
+    foreach i, shipment in orderRec.shipments {
+        foreach lineItemId in shipment.productLineItemIds {
+            string shipToCustomerName = orderRec.shipments[i].shippingAddress.firstName;
+            json payload = {
+                "shipToEmail": orderRec.customerEmail,
+                "shipToCustomerName": shipToCustomerName,
+                "shipToAddressLine1": orderRec.shipments[i].shippingAddress.address1,
+                "shipToAddressLine2": orderRec.shipments[i].shippingAddress.address2,
+                "shipToAddressLine3":"",
+                "shipToContactNumber": orderRec.shipments[i].shippingAddress.phone,
+                "shipToAddressLine4":"",
+                "shipToCity": orderRec.shipments[i].shippingAddress.city,
+                "shipToState": orderRec.shipments[i].shippingAddress.stateCode,
+                "shipToCountry": orderRec.shipments[i].shippingAddress.countryCode,
+                "shipToZip": orderRec.shipments[i].shippingAddress.postalCode,
+                "shipToCounty": orderRec.shipments[i].additionalProperties.county,
+                "shipToProvince": orderRec.shipments[i].shippingAddress.stateCode,
+                "billToAddressLine1": orderRec.payments[0].billingAddress.address1,
+                "billToAddressLine2": orderRec.payments[0].billingAddress.address2,
+                "billToAddressLine3":"",
+                "billToAddressLine4":"",
+                "billToContactNumber": orderRec.payments[0].billingAddress.phone,
+                "billToCity": orderRec.payments[0].billingAddress.city,
+                "billToState": orderRec.payments[0].billingAddress.stateCode,
+                "billToCountry": orderRec.payments[0].billingAddress.countryCode,
+                "billToZip": orderRec.payments[0].billingAddress.postalCode,
+                "billToCounty": orderRec.payments[0].additionalProperties.county,
+                "billToProvince": orderRec.payments[0].billingAddress.stateCode,
+                "orderNo": orderRec.ecommOrderId,
+                "lineNumber": lineItemId,
+                "contextId": orderRec.context.id
+            };
 
-    return payload;
+            jsonPayload.shipments[lines] = payload;
+            lines++;
+        }
+    }
+
+    return jsonPayload;
 }
