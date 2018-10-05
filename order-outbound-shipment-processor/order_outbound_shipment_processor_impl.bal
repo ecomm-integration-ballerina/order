@@ -49,43 +49,6 @@ function processOrderToShipmentAPI (model:OrderDAO orderDAORec) {
     }
 }
 
-function updateProcessFlag(int tid, string orderNo, int retryCount, string processFlag, string errorMessage) {
-
-    json updateOrder = {
-        "transactionId": tid,
-        "processFlag": processFlag,
-        "retryCount": retryCount,
-        "errorMessage": errorMessage
-    };
-
-    http:Request req = new;
-    req.setJsonPayload(untaint updateOrder);
-    
-    log:printInfo("Calling orderDataServiceEndpoint.updateProcessFlag / " 
-        + tid + " / " + orderNo + ". Payload : " + updateOrder.toString());
-
-    var response = orderDataServiceEndpoint->put("/process-flag/", req);
-
-    match response {
-        http:Response resp => {
-            int httpCode = resp.statusCode;
-            if (httpCode == 202) {
-                if (processFlag == "E" && retryCount > maxRetryCount) {
-                    notifyOperation();
-                }
-            }
-        }
-        error err => {
-            log:printError("Error while calling orderDataServiceEndpoint.updateProcessFlag", err = err);
-        }
-    }
-}
-
-function notifyOperation() {
-    // sending email alerts
-    log:printInfo("Notifying operations");
-}
-
 function createShipmentPayload (model:OrderDAO orderDAORec) returns json {
 
     model:Order orderRec = check <model:Order> orderDAORec.request;
