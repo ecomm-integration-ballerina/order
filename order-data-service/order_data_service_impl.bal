@@ -22,12 +22,16 @@ public function addOrder (http:Request req, model:OrderDAO orderJson) returns ht
     string sqlString = "INSERT INTO order_import_request(ORDER_NO,REQUEST,PROCESS_FLAG,
         RETRY_COUNT,ERROR_MESSAGE,ORDER_TYPE) VALUES (?,?,?,?,?,?)";
 
-    log:printInfo("Calling orderDB->insert for OrderNo=" + orderJson.orderNo);
+    string orderNo = orderJson.orderNo;
+
+    log:printInfo("Inserting order: " + orderNo + " in orderDB");
 
     boolean isSuccessful;
     transaction with retries = 5, oncommit = onCommitFunction, onabort = onAbortFunction {                              
         
+        // base64 encoding the request json
         string base64Request = check mime:base64EncodeString(orderJson.request.toString());
+
         var ret = orderDB->update(sqlString, orderJson.orderNo, base64Request, 
             orderJson.processFlag, orderJson.retryCount, orderJson.errorMessage, 
             orderJson.orderType);
@@ -35,18 +39,17 @@ public function addOrder (http:Request req, model:OrderDAO orderJson) returns ht
         match ret {
             int insertedRows => {
                 if (insertedRows < 1) {
-                    log:printError("Calling orderDB->insert for OrderNo=" + orderJson.orderNo 
-                        + " failed", err = ());
+                    log:printError("Couldn't insert order: " + orderNo + " in orderDB", err = ());
                     isSuccessful = false;
                     abort;
                 } else {
-                    log:printInfo("Calling orderDB->insert OrderNo=" + orderJson.orderNo + " succeeded");
+                    log:printInfo("Inserted order: " + orderNo + " in orderDB");
                     isSuccessful = true;
                 }
             }
             error err => {
-                log:printError("Calling orderDB->insert for OrderNo=" + orderJson.orderNo 
-                    + " failed", err = err);
+                log:printError("Couldn't insert order: " + orderNo + " in orderDB", err = err);
+                isSuccessful = false;
                 retry;
             }
         }        
@@ -56,12 +59,14 @@ public function addOrder (http:Request req, model:OrderDAO orderJson) returns ht
     int statusCode;
     if (isSuccessful) {
         statusCode = http:OK_200;
-        resJson = { "Status": "Order is inserted to the staging database for order : " 
-                    + orderJson.orderNo };
+        resJson = { 
+            "Status": "Inserted order: " + orderNo + " in orderDB" 
+        };
     } else {
         statusCode = http:INTERNAL_SERVER_ERROR_500;
-        resJson = { "Status": "Failed to insert order to the staging database for order : " 
-                    + orderJson.orderNo };
+        resJson = { 
+            "Status": "Couldn't insert order: " + orderNo + " in orderDB" 
+        };
     }
     
     http:Response res = new;
@@ -111,7 +116,8 @@ public function getOrders (http:Request req)
     string[] processFlagArray = processFlag.split(",");
     sql:Parameter processFlagPara = { sqlType: sql:TYPE_VARCHAR, value: processFlagArray };
 
-    var ret = orderDB->select(sqlString, model:OrderDAO, loadToMemory = true, processFlagPara, retryCount, resultsLimit);
+    var ret = orderDB->select(sqlString, 
+        model:OrderDAO, loadToMemory = true, processFlagPara, retryCount, resultsLimit);
 
     http:Response resp = new;
     json[] jsonReturnValue;
@@ -123,7 +129,7 @@ public function getOrders (http:Request req)
                 orderRec.request = requestJson;
                 jsonReturnValue[lengthof jsonReturnValue] = check <json> orderRec;
             }
-            io:println(jsonReturnValue);
+
             resp.setJsonPayload(untaint jsonReturnValue);
             resp.statusCode = http:OK_200;
         }
@@ -134,16 +140,16 @@ public function getOrders (http:Request req)
         }
     }
 
-    
-
     return resp;
 }
 
 public function updateProcessFlag (http:Request req, model:OrderDAO orderJson)
                     returns http:Response {
 
-    log:printInfo("Calling orderDB->updateProcessFlag for TID=" + orderJson.transactionId + 
-                    ", OrderNo=" + orderJson.orderNo);
+
+    int tid = orderJson.transactionId ;
+
+    log:printInfo("Updating record of tid: " + tid + " in orderDB");
     string sqlString = "UPDATE order_import_request SET PROCESS_FLAG = ?, RETRY_COUNT = ?, ERROR_MESSAGE = ? 
                             where TRANSACTION_ID = ?";
 
@@ -157,19 +163,16 @@ public function updateProcessFlag (http:Request req, model:OrderDAO orderJson)
         match ret {
             int updatedRows => {
                 if (updatedRows < 1) {
-                    log:printError("Calling orderDB->updateProcessFlag for TID=" + orderJson.transactionId + 
-                                ", OrderNo=" + orderJson.orderNo + " failed", err = ());
+                    log:printError("Couldn't update record of tid: " + tid + " in orderDB", err = ());
                     isSuccessful = false;
                     abort;
                 } else {
-                    log:printInfo("Calling orderDB->updateProcessFlag for TID=" + orderJson.transactionId + 
-                                ", OrderNo=" + orderJson.orderNo + " succeeded");
+                    log:printInfo("Updated record of tid: " + tid + " in orderDB");
                     isSuccessful = true;
                 }
             }
             error err => {
-                log:printError("Calling orderDB->updateProcessFlag for TID=" + orderJson.transactionId 
-                    + " failed", err = err);
+                    log:printError("Couldn't update record of tid: " + tid+ " in orderDB", err = ());
                 isSuccessful = false;
                 retry;
             }
@@ -179,10 +182,10 @@ public function updateProcessFlag (http:Request req, model:OrderDAO orderJson)
 
     int statusCode;
     if (isSuccessful) {
-        resJson = { "Status": "ProcessFlag is updated for order : " + orderJson.transactionId };
+        resJson = { "Status": "Updated record of tid: " + tid };
         statusCode = http:ACCEPTED_202;
     } else {
-        resJson = { "Status": "Failed to update ProcessFlag for order : " + orderJson.transactionId };
+        resJson = { "Status": "Couldn't update record of tid: " + tid };
         statusCode = http:INTERNAL_SERVER_ERROR_500;
     }
 
@@ -196,14 +199,20 @@ public function batchUpdateProcessFlag (http:Request req, model:OrdersDAO orders
                     returns http:Response {
 
     orderBatchType[][] orderBatches;
+    string tids;
     foreach i, orderRec in orders.orders {
         orderBatchType[] ord = [orderRec.processFlag, orderRec.retryCount, orderRec.transactionId];
         orderBatches[i] = ord;
+        if (i == 0) {
+            tids = <string> orderRec.transactionId;
+        } else {
+            tids = tids + ", " + <string> orderRec.transactionId;
+        }
     }
     
     string sqlString = "UPDATE order_import_request SET PROCESS_FLAG = ?, RETRY_COUNT = ? where TRANSACTION_ID = ?";
 
-    log:printInfo("Calling orderDB->batchUpdateProcessFlag");
+    log:printInfo("Batch updating records of tids: " + tids);
     
     json resJson;
     boolean isSuccessful;
@@ -214,17 +223,17 @@ public function batchUpdateProcessFlag (http:Request req, model:OrdersDAO orders
             int[] counts => {
                 foreach count in counts {
                     if (count < 1) {
-                        log:printError("Calling orderDB->batchUpdateProcessFlag failed", err = ());
+                        log:printError("Couldn't batch updating records of tids: " + tids, err = ());
                         isSuccessful = false;
                         abort;
                     } else {
-                        log:printInfo("Calling orderDB->batchUpdateProcessFlag succeeded");
+                        log:printInfo("Batch updated records of tids: " + tids);
                         isSuccessful = true;
                     }
                 }
             }
             error err => {
-                log:printError("Calling orderDB->batchUpdateProcessFlag failed", err = err);
+                log:printError("Couldn't batch updating records of tids: " + tids, err = err);
                 retry;
             }
         }      
@@ -232,10 +241,10 @@ public function batchUpdateProcessFlag (http:Request req, model:OrdersDAO orders
 
     int statusCode;
     if (isSuccessful) {
-        resJson = { "Status": "ProcessFlags updated"};
+        resJson = { "Status": "Batch updated records of tids: " + tids };
         statusCode = http:ACCEPTED_202;
     } else {
-        resJson = { "Status": "ProcessFlags not updated" };
+        resJson = { "Status": "Couldn't batch update records of tids: " + tids };
         statusCode = http:INTERNAL_SERVER_ERROR_500;
     }
 
@@ -246,9 +255,9 @@ public function batchUpdateProcessFlag (http:Request req, model:OrdersDAO orders
 }
 
 function onCommitFunction(string transactionId) {
-    log:printInfo("Transaction: " + transactionId + " committed");
+    log:printDebug("Transaction: " + transactionId + " committed");
 }
 
 function onAbortFunction(string transactionId) {
-    log:printInfo("Transaction: " + transactionId + " aborted");
+    log:printDebug("Transaction: " + transactionId + " aborted");
 }

@@ -1,16 +1,17 @@
 import ballerina/http;
 import ballerina/log;
 import ballerina/mysql;
+import ballerina/config;
 import raj/orders.model as model;
 
-endpoint http:Listener orderListener {
-    port: 8281
+endpoint http:Listener orderDataServiceListener {
+    port: port: config:getAsInt("order.data.service.port")
 };
 
 @http:ServiceConfig {
-    basePath: "/order"
+    basePath: "/data/order"
 }
-service<http:Service> orderDataAPI bind orderListener {
+service<http:Service> orderDataService bind orderDataServiceListener {
 
     @http:ResourceConfig {
         methods:["POST"],
@@ -47,7 +48,7 @@ service<http:Service> orderDataAPI bind orderListener {
         body: "orders"
     }
     batchUpdateProcessFlag (endpoint outboundEp, http:Request req, model:OrdersDAO orders) {
-        http:Response res = batchUpdateProcessFlag(req, orders);
+        http:Response res = batchUpdateProcessFlag(req, untaint orders);
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
     }     
 }

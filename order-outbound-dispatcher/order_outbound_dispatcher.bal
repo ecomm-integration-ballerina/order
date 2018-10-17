@@ -50,7 +50,7 @@ function doOrderOutboundDispatcherETL() returns  error? {
         http:Response resp => {
             match resp.getJsonPayload() {
                 json jsonOrderArray => { 
-                    io:println(jsonOrderArray);
+
                     model:OrderDAO[] orders = check <model:OrderDAO[]> jsonOrderArray;
                     // terminate the flow if no orders found
                     if (lengthof orders == 0) {
