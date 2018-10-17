@@ -7,7 +7,7 @@ import ballerina/io;
 import ballerina/mb;
 import raj/orders.model as model;
 
-endpoint mb:SimpleTopicPublisher orderOutboundPublisher {
+endpoint mb:SimpleTopicPublisher orderOutboundTopicPublisherEp {
     host: config:getAsString("order.mb.host"),
     port: config:getAsInt("order.mb.port"),
     topicPattern: config:getAsString("order.mb.topicName")
@@ -24,7 +24,7 @@ int delay = config:getAsInt("order.outbound.dispatcher.task.delay");
 int maxRetryCount = config:getAsInt("order.outbound.dispatcher.task.maxRetryCount");
 int maxRecords = config:getAsInt("order.outbound.dispatcher.task.maxRecords");
 
-function main(string... args) {
+public function main(string... args) {
 
     (function() returns error?) onTriggerFunction = doOrderOutboundDispatcherETL;
 
@@ -66,14 +66,12 @@ function doOrderOutboundDispatcherETL() returns  error? {
                 error err => {
                     log:printError("Response from orderDataServiceEndpoint is not a json : " + 
                                     err.message, err = err);
-                    throw err;
                 }
             }
         }
         error err => {
             log:printError("Error while calling orderDataServiceEndpoint : " + 
                             err.message, err = err);
-            throw err;
         }
     }
 
@@ -91,32 +89,34 @@ function publishOrdersToTopic (model:OrderDAO[] orders) {
        
         json jsonPayload = check <json> orderRec;
 
-        log:printInfo("Publishing to topic : " + orderNo + 
-                        ". Payload : " + jsonPayload.toString());
+        log:printInfo("Publishing " + orderType + " order: " + orderNo + 
+                        " to orderOutboundTopic. Payload: \n" + jsonPayload.toString());
 
-        match (orderOutboundPublisher.createTextMessage(jsonPayload.toString())) {
+        match (orderOutboundTopicPublisherEp.createTextMessage(jsonPayload.toString())) {
             
             error e => {
-                log:printError("Error occurred while creating message", err = e);
+                log:printError("Error occurred while creating message for " + orderType + 
+                    " order: " + orderNo, err = e);
             }
 
             mb:Message msg => {
-                log:printInfo("Publishing order " + orderNo + " of type " + orderType + " into orderOutboundTopic");
-                orderOutboundPublisher->send(msg) but {
-                    error e => log:printError("Error occurred while sending message to orderOutboundTopic", err = e)
+                orderOutboundTopicPublisherEp->send(msg) but {
+                    error e => log:printError("Error in publishing " + orderType + " order: " 
+                        + orderNo + " to orderOutboundTopic", err = e)
                 };
             }
         }
     }
 }
 
-function handleError(error e) {
-    log:printError("Error in Order Outbound Dispatcher ETL", err = e);
+function handleError(error err) {
+    log:printError("Error in Order Outbound Dispatcher ETL", err = err);
 }
 
 function batchUpdateProcessFlagsToP (model:OrderDAO[] orders) returns boolean{
 
     json batchUpdateProcessFlagsPayload;
+    string tids;
     foreach i, orderRec in orders {
         json updateProcessFlagPayload = {
             "transactionId": orderRec.transactionId,
@@ -124,7 +124,14 @@ function batchUpdateProcessFlagsToP (model:OrderDAO[] orders) returns boolean{
             "processFlag": "P"           
         };
         batchUpdateProcessFlagsPayload.orders[i] = updateProcessFlagPayload;
+        if (i == 0) {
+            tids = <string> orderRec.transactionId;
+        } else {
+            tids = tids + ", " + <string> orderRec.transactionId;
+        }
     }
+
+    log:printInfo("Calling orderDataServiceEndpoint to batchUpdate records of tids: " + tids + " to P");
 
     http:Request req = new;
     req.setJsonPayload(untaint batchUpdateProcessFlagsPayload);
@@ -136,10 +143,14 @@ function batchUpdateProcessFlagsToP (model:OrderDAO[] orders) returns boolean{
         http:Response resp => {
             if (resp.statusCode == 202) {
                 success = true;
+            } else {
+                log:printError("Couldn't batchUpdate records of tids: " 
+                    + tids + " to P", err = ());  
             }
         }
         error err => {
-            log:printError("Error while calling orderDataServiceEndpoint.batchUpdateProcessFlags", err = err);
+            log:printError("Error in calling orderDataServiceEndpoint to batchUpdate records of tids: " 
+                + tids + " to P", err = err);
         }
     }
 
@@ -158,6 +169,8 @@ function updateProcessFlag(int tid, int retryCount, string processFlag, string e
     http:Request req = new;
     req.setJsonPayload(untaint updateOrder);
 
+    log:printInfo("Calling orderDataServiceEndpoint to update records of tid: " + tid + " to " + processFlag);
+
     var response = orderDataServiceEndpoint->put("/process-flag/", req);
 
     match response {
@@ -167,10 +180,13 @@ function updateProcessFlag(int tid, int retryCount, string processFlag, string e
                 if (processFlag == "E" && retryCount > maxRetryCount) {
                     notifyOperation();
                 }
+            } else {
+                log:printError("Couldn't update records of tid: " + tid + " to " + processFlag, err = ());  
             }
         }
         error err => {
-            log:printError("Error while calling orderDataServiceEndpoint", err = err);
+            log:printError("Error in calling orderDataServiceEndpoint to update records of tid: " 
+                + tid + " to " + processFlag, err = err);
         }
     }
 }

@@ -9,7 +9,8 @@ import raj/orders.model as model;
 endpoint mb:SimpleTopicSubscriber orderOutboundTopic {
     host: config:getAsString("order.mb.host"),
     port: config:getAsInt("order.mb.port"),
-    topicPattern: config:getAsString("order.mb.topicName")
+    topicPattern: config:getAsString("order.mb.topicName"),
+    acknowledgementMode: "AUTO_ACKNOWLEDGE"
 };
 
 service<mb:Consumer> orderOutboundTopicSubscriber bind orderOutboundTopic {
@@ -26,7 +27,7 @@ service<mb:Consumer> orderOutboundTopicSubscriber bind orderOutboundTopic {
                 string orderNo = orderDAORec.orderNo;
                 string orderType = orderDAORec.orderType;
 
-                log:printInfo("Received order " + orderNo + " of type " + orderType + " from orderOutboundTopic");
+                log:printInfo("Received " + orderType + " order: " + orderNo + " from orderOutboundTopic");
 
                 boolean success = processOrderToSap(orderDAORec);
             }

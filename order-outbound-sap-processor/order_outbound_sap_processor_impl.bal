@@ -8,18 +8,18 @@ import wso2/soap;
 import raj/orders.model as model;
 
 type Address record {
-    string countryCode,
-    string stateCode,
-    string add1,
-    string add2,
-    string city,
-    string zip,
+    string countryCode;
+    string stateCode;
+    string add1;
+    string add2;
+    string city;
+    string zip;
 };
 
 int maxRetryCount = config:getAsInt("order.outbound.sap.maxRetryCount");
 
 endpoint http:Client orderDataServiceEndpoint {
-    url: config:getAsString("order.api.url")
+    url: config:getAsString("order.data.service.url")
 };
 
 endpoint soap:Client sapClient {
@@ -29,7 +29,7 @@ endpoint soap:Client sapClient {
 };
 
 function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
-
+    
     int tid = orderDAORec.transactionId;
     string orderNo = orderDAORec.orderNo;
     int retryCount = orderDAORec.retryCount ;
@@ -40,8 +40,8 @@ function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
         payload: idoc
     };
 
-    log:printInfo("Sending to ecc / " + tid + " / " + orderNo
-                        + ". Payload : " + io:sprintf("%l", idoc));
+    log:printInfo("Sending to ecc tid: " + tid + ", order: " + orderNo
+                        + ", payload: \n" + io:sprintf("%s", idoc));
 
     var details = sapClient->sendReceive("/", soapRequest);
 
@@ -51,18 +51,18 @@ function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
             xml payload = soapResponse.payload;
             if (payload.msg.getTextValue() == "Errored") {
 
-                log:printInfo("Failed to send to ecc / " + tid + " / " + orderNo
-                    + ". Payload : " + io:sprintf("%l", payload));
+                log:printInfo("Failed to send to ecc tid: " + tid + ", order: " + orderNo
+                    + ", payload: \n" + io:sprintf("%s", payload));
                 updateProcessFlag(tid, orderNo, retryCount + 1, "E", "Errored");
             } else {
 
-                log:printInfo("Sent to ecc / " + tid + " / " + orderNo);
+                log:printInfo("Sent to ecc tid: " + tid + ", order: " + orderNo);
                 updateProcessFlag(tid, orderNo, retryCount, "C", "Sent to SAP");
             }
         }
         soap:SoapError soapError => {
-            log:printInfo("Failed to send to ecc / " + tid + " / " + orderNo
-                + ". Payload : " + soapError.message);
+            log:printInfo("Failed to send to ecc tid: " + tid + ", order: " + orderNo
+                + ", payload: \n" + soapError.message);
             updateProcessFlag(tid, orderNo, retryCount + 1, "E", soapError.message);
         }
     }
@@ -82,8 +82,8 @@ function updateProcessFlag(int tid, string orderNo, int retryCount, string proce
     http:Request req = new;
     req.setJsonPayload(untaint updateOrder);
     
-    log:printInfo("Calling orderDataServiceEndpoint.updateProcessFlag / " 
-        + tid + " / " + orderNo + ". Payload : " + updateOrder.toString());
+    log:printInfo("Calling orderDataServiceEndpoint to update tid: " 
+        + tid + ", order: " + orderNo + " to " + processFlag + ". Payload: \n" + updateOrder.toString());
 
     var response = orderDataServiceEndpoint->put("/process-flag/", req);
 
@@ -97,7 +97,8 @@ function updateProcessFlag(int tid, string orderNo, int retryCount, string proce
             }
         }
         error err => {
-            log:printError("Error while calling orderDataServiceEndpoint.updateProcessFlag", err = err);
+            log:printError(" Error in calling orderDataServiceEndpoint to update tid: " + tid + 
+                ", order: " + orderNo + " to " + processFlag, err = err);
         }
     }
 }
