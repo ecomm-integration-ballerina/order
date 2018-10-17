@@ -45,10 +45,10 @@ service<http:Service> orderDataService bind orderDataServiceListener {
     @http:ResourceConfig {
         methods:["PUT"],
         path: "/process-flag/batch/",
-        body: "orders"
+        body: "ordersJson"
     }
-    batchUpdateProcessFlag (endpoint outboundEp, http:Request req, model:OrdersDAO orders) {
-        http:Response res = batchUpdateProcessFlag(req, untaint orders);
+    batchUpdateProcessFlag (endpoint outboundEp, http:Request req, model:OrdersDAO ordersJson) {
+        http:Response res = batchUpdateProcessFlag(req, untaint ordersJson);
         outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
     }     
 }

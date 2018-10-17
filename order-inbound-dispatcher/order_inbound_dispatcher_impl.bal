@@ -12,31 +12,49 @@ endpoint mb:SimpleQueueSender orderInboundQueue {
 
 public function addOrder (http:Request req, model:Order orderRec, string kind) returns http:Response {
 
-    http:Response res = new;
+    http:Response resp = new;
     string ecommOrderId = orderRec.ecommOrderId;
     string orderString = model:orderToString(orderRec);
 
-    log:printInfo("Received order " + ecommOrderId + " of type " + kind + ". Payload: \n" + orderString);
-    
+    log:printInfo("Received " + kind + " order: " + ecommOrderId + ". Payload: \n" + orderString);
+    log:printInfo("Queuing " + kind + " order: " + ecommOrderId + " in orderInboundQueue");
     match (orderInboundQueue.createTextMessage(orderString)) {
         
-        error e => {
-            log:printError("Error occurred while creating message", err = e);
+        error err => {
+            log:printError("Couldn't queue " + kind + " order: " + ecommOrderId + " in orderInboundQueue", err=err);
+            json respPayload = { "Status": "Internal Server Error", "Error": err.message };
+            resp.setJsonPayload(untaint respPayload);
+            resp.statusCode = http:INTERNAL_SERVER_ERROR_500;
         }
         mb:Message msg => {
-            match msg.setStringProperty("kind", kind) {
-                error e => {
-                    log:printError("Error setting kind property", err = e);
-                }
-                () => {}
-            }
 
-            log:printInfo("Inserting order " + ecommOrderId + " of type " + kind + " into orderInboundQueue");
-            orderInboundQueue->send(msg) but {
-                error e => log:printError("Error occurred while sending message to orderInboundQueue", err = e)
-            };
+            match msg.setStringProperty("kind", kind) {
+                error err => {
+                    log:printError("Couldn't queue " + kind + " order: " + ecommOrderId + " in orderInboundQueue", err=err);
+                    json respPayload = { "Status": "Internal Server Error", "Error": err.message };
+                    resp.setJsonPayload(untaint respPayload);
+                    resp.statusCode = http:INTERNAL_SERVER_ERROR_500;
+                }
+                () => {
+                    var ret = orderInboundQueue->send(msg);
+                    match ret {
+                        error err => {
+                            log:printError("Couldn't queue " + kind + " order: " + ecommOrderId + " in orderInboundQueue", err=err);
+                            json respPayload = { "Status": "Internal Server Error", "Error": err.message };
+                            resp.setJsonPayload(untaint respPayload);
+                            resp.statusCode = http:INTERNAL_SERVER_ERROR_500;
+                        }
+                        () => {
+                            log:printInfo("Queued " + kind + " order: " + ecommOrderId + " in orderInboundQueue");
+                            json respPayload = { "message": "Order: " + ecommOrderId + " queued successfully"};
+                            resp.setJsonPayload(untaint respPayload);
+                            resp.statusCode = http:OK_200;
+                        }
+                    }
+                }
+            }
         }
     }
     
-    return res;
+    return resp;
 }
