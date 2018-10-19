@@ -5,20 +5,42 @@ import ballerina/config;
 // import ballerinax/kubernetes;
 import raj/orders.model as model;
 
-// @kubernetes:Service {}
+// @kubernetes:Service {
+//     name: "order-data-service-service",
+//     serviceType: "LoadBalancer"
+// }
 endpoint http:Listener orderDataServiceListener {
     port: 8280
 };
 
 // @kubernetes:Deployment {
-//     name: "order-data-service",
+//     name: "order-data-service-deployment",
+//     namespace: "default",
 //     replicas: 1,
 //     buildImage: true,
-//     push: true,
-//     image: "index.docker.io/$env{DOCKER_USERNAME}/order-data-service:0.1.1",
+//     push: false,
+//     image: "index.docker.io/$env{DOCKER_USERNAME}/order-data-service:0.2.0",
 //     username:"$env{DOCKER_USERNAME}",
 //     password:"$env{DOCKER_PASSWORD}",
 //     imagePullPolicy: "Always",
+//     env: {
+//         order_db_host: "staging-db-headless-service.default.svc.cluster.local",
+//         order_db_port: "3306",
+//         order_db_name: "WSO2_STAGING",
+//         order_db_username: {
+//             secretKeyRef: {
+//                 name: "staging-db-secret",
+//                 key: "username"
+//             }
+//         },
+//         order_db_password: {
+//             secretKeyRef: {
+//                 name: "staging-db-secret",
+//                 key: "password"
+//             }
+//         },
+//         b7a_observability_tracing_jaeger_reporter_hostname: "jaeger-udp-service.default.svc.cluster.local"
+//     },
 //     copyFiles: [
 //         { 
 //             source: "./order-data-service/conf/ballerina.conf", 
