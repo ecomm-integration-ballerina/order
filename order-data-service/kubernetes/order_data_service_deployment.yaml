@@ -1,0 +1,62 @@
+---
+apiVersion: "extensions/v1beta1"
+kind: "Deployment"
+metadata:
+  annotations: {}
+  finalizers: []
+  labels:
+    app: "order-data-service"
+  name: "order-data-service-deployment"
+  namespace: "default"
+  ownerReferences: []
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "9797"
+      finalizers: []
+      labels:
+        app: "order-data-service"
+      ownerReferences: []
+    spec:
+      containers:
+      - args: []
+        command: []
+        env:        
+          - name: order_db_host
+            value: "staging-db-headless-service.default.svc.cluster.local"
+          - name: order_db_port
+            value: "3306"    
+          - name: order_db_name
+            value: "WSO2_STAGING" 
+          - name: order_db_username
+            valueFrom:
+              secretKeyRef:
+                name: staging-db-secret
+                key: username  
+          - name: order_db_password
+            valueFrom:
+              secretKeyRef:
+                name: staging-db-secret
+                key: password
+          - name: b7a_observability_tracing_jaeger_reporter_hostname
+            value: "jaeger-udp-service.default.svc.cluster.local"                       
+        envFrom: []
+        image: "rajkumar/order-data-service:0.1.11"
+        imagePullPolicy: "IfNotPresent"
+        name: "order-data-service-deployment"
+        ports:       
+        - containerPort: 8280
+          name: http 
+        - containerPort: 9797
+          name: prometheus           
+        volumeMounts: []
+      hostAliases: []
+      imagePullSecrets: []
+      initContainers: []
+      nodeSelector: {}
+      tolerations: []
+      volumes: []

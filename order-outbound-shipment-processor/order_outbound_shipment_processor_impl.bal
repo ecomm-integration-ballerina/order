@@ -10,11 +10,11 @@ import raj/orders.model as model;
 int maxRetryCount = config:getAsInt("order.outbound.shipment.maxRetryCount");
 
 endpoint http:Client orderDataServiceEndpoint {
-    url: config:getAsString("order.api.url")
+    url: config:getAsString("order.data.service.url")
 };
 
 endpoint http:Client shipmentDataServiceEndpoint {
-    url: config:getAsString("shipment.api.url")
+    url: config:getAsString("shipment.data.service.url")
 };
 
 function processOrderToShipmentAPI (model:OrderDAO orderDAORec) {
@@ -29,8 +29,8 @@ function processOrderToShipmentAPI (model:OrderDAO orderDAORec) {
     http:Request req = new;
     req.setJsonPayload(untaint payload);
     
-    log:printInfo("Calling shipmentDataServiceEndpoint.insert / " 
-        + tid + " / " + orderNo + ". Payload : " + payload.toString());
+    log:printInfo("Calling shipmentDataServiceEndpoint to insert tid: " 
+        + tid + ", order: " + orderNo + ", payload:\n" + payload.toString());
 
     var response = shipmentDataServiceEndpoint->post("/batch", req);
 
@@ -38,13 +38,16 @@ function processOrderToShipmentAPI (model:OrderDAO orderDAORec) {
         http:Response resp => {
             int httpCode = resp.statusCode;
             if (httpCode == 200) {
-                log:printInfo("Sent to shipment / " + tid + " / " + orderNo);
+                log:printInfo("Sent to shipmentDataServiceEndpoint to insert tid: " + tid + 
+                    ", order: " + orderNo);
             } else {
-                log:printInfo("Failed to send to shipment / " + tid + " / " + orderNo);
+                log:printInfo("Failed to send to shipmentDataServiceEndpoint to insert tid: " + tid + 
+                    ", order: " + orderNo);
             }
         }
         error err => {
-            log:printError("Error while calling orderDataServiceEndpoint.updateProcessFlag", err = err);
+            log:printError("Error in calling shipmentDataServiceEndpoint to insert tid: " + tid + 
+                    ", order: " + orderNo, err = err);
         }
     }
 }

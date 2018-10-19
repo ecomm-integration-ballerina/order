@@ -2,12 +2,35 @@ import ballerina/http;
 import ballerina/log;
 import ballerina/mysql;
 import ballerina/config;
+// import ballerinax/kubernetes;
 import raj/orders.model as model;
 
+// @kubernetes:Service {}
 endpoint http:Listener orderDataServiceListener {
-    port: port: config:getAsInt("order.data.service.port")
+    port: 8280
 };
 
+// @kubernetes:Deployment {
+//     name: "order-data-service",
+//     replicas: 1,
+//     buildImage: true,
+//     push: true,
+//     image: "index.docker.io/$env{DOCKER_USERNAME}/order-data-service:0.1.1",
+//     username:"$env{DOCKER_USERNAME}",
+//     password:"$env{DOCKER_PASSWORD}",
+//     imagePullPolicy: "Always",
+//     copyFiles: [
+//         { 
+//             source: "./order-data-service/conf/ballerina.conf", 
+//             target: "/home/ballerina/ballerina.conf", isBallerinaConf: true 
+//         },
+//         {
+//             source: "./order-data-service/dependencies/mysql-connector-java-5.1.45-bin.jar",
+//             target: "/ballerina/runtime/bre/lib/mysql-connector-java-5.1.45-bin.jar"
+
+//         }
+//     ]
+// }
 @http:ServiceConfig {
     basePath: "/data/order"
 }

@@ -1,0 +1,60 @@
+---
+apiVersion: "extensions/v1beta1"
+kind: "Deployment"
+metadata:
+  annotations: {}
+  finalizers: []
+  labels:
+    app: "refund-inbound-dispatcher"
+  name: "refund-inbound-dispatcher-deployment"
+  namespace: "default"
+  ownerReferences: []
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations: {}
+      finalizers: []
+      labels:
+        app: "refund-inbound-dispatcher"
+      ownerReferences: []
+    spec:
+      containers:
+      - args: []
+        command: []
+        env:
+          - name: refund_mb_host
+            value: "b7a-mb-service.default.svc.cluster.local"
+          - name: refund_mb_port
+            value: "5672" 
+          - name: ecomm_backend_refund_sftp_host
+            value: "refund-sftp-headless-service.default.svc.cluster.local"
+          - name: ecomm_backend_refund_sftp_port
+            value: "22"    
+          - name: ecomm_backend_refund_sftp_username
+            valueFrom:
+              secretKeyRef:
+                name: ecomm-back-end-sftp-secret
+                key: username 
+          - name: ecomm_backend_refund_sftp_password
+            valueFrom:
+                secretKeyRef:
+                  name: ecomm-back-end-sftp-secret
+                  key: password 
+          - name: ecomm_backend_refund_sftp_path
+            valueFrom:
+                secretKeyRef:
+                  name: ecomm-back-end-sftp-secret
+                  key: path                                                                
+        envFrom: []
+        image: "rajkumar/refund-inbound-dispatcher:0.1.0"
+        imagePullPolicy: "Always"
+        name: "refund-inbound-dispatcher-deployment"
+        ports:        
+        volumeMounts: []
+      hostAliases: []
+      imagePullSecrets: []
+      initContainers: []
+      nodeSelector: {}
+      tolerations: []
+      volumes: []

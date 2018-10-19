@@ -6,13 +6,13 @@ import ballerina/http;
 import ballerina/time;
 import raj/orders.model as model;
 
-endpoint mb:SimpleTopicSubscriber orderOutboundTopic {
+endpoint mb:SimpleTopicSubscriber orderOutboundTopicSubscriberEp {
     host: config:getAsString("order.mb.host"),
     port: config:getAsInt("order.mb.port"),
     topicPattern: config:getAsString("order.mb.topicName")
 };
 
-service<mb:Consumer> orderOutboundTopicSubscriber bind orderOutboundTopic {
+service<mb:Consumer> orderOutboundTopicSubscriber bind orderOutboundTopicSubscriberEp {
 
     onMessage(endpoint consumer, mb:Message message) {
 
@@ -26,7 +26,7 @@ service<mb:Consumer> orderOutboundTopicSubscriber bind orderOutboundTopic {
                 string orderNo = orderDAORec.orderNo;
                 string orderType = orderDAORec.orderType;
 
-                log:printInfo("Received order " + orderNo + " of type " + orderType + " from orderOutboundTopic");
+                log:printInfo("Received " + orderType + " order: " + orderNo + " from orderOutboundTopic");
 
                 processOrderToShipmentAPI(orderDAORec);
             }
