@@ -5,8 +5,8 @@ metadata:
   annotations: {}
   finalizers: []
   labels:
-    app: "order-inbound-dispatcher"
-  name: "order-inbound-dispatcher-deployment"
+    app: "order-outbound-dispatcher"
+  name: "order-outbound-dispatcher-deployment"
   namespace: "default"
   ownerReferences: []
 spec:
@@ -19,7 +19,7 @@ spec:
         prometheus.io/port: "9797"
       finalizers: []
       labels:
-        app: "order-inbound-dispatcher"
+        app: "order-outbound-dispatcher"
       ownerReferences: []
     spec:
       containers:
@@ -31,16 +31,18 @@ spec:
           - name: order_mb_port
             value: "5672"
           - name: b7a_observability_tracing_jaeger_reporter_hostname
-            value: "jaeger-udp-service.default.svc.cluster.local"                                                                                
+            value: "jaeger-udp-service.default.svc.cluster.local"  
+          - name: order_data_service_url
+            value: "http://order-data-service-service.default.svc.cluster.local:8280/data/order"                                   
         envFrom: []
-        image: "rajkumar/order-inbound-dispatcher:0.1.0"
+        image: "rajkumar/order-outbound-dispatcher:0.1.1"
         imagePullPolicy: "IfNotPresent"
-        name: "order-inbound-dispatcher-deployment"
+        name: "order-outbound-dispatcher-deployment"
         ports:       
         - containerPort: 8280
           name: http 
         - containerPort: 9797
-          name: prometheus    
+          name: prometheus           
         volumeMounts: []
       hostAliases: []
       imagePullSecrets: []
