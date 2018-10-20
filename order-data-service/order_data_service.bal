@@ -2,7 +2,7 @@ import ballerina/http;
 import ballerina/log;
 import ballerina/mysql;
 import ballerina/config;
-// import ballerinax/kubernetes;
+import ballerinax/kubernetes;
 import raj/orders.model as model;
 
 // @kubernetes:Service {
