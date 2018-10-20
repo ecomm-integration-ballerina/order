@@ -4,7 +4,6 @@ import ballerina/log;
 import ballerina/mb;
 import ballerina/http;
 import ballerina/time;
-import wso2/soap;
 import raj/orders.model as model;
 
 int maxRetryCount = config:getAsInt("order.outbound.shipment.maxRetryCount");
