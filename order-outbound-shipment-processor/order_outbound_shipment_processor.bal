@@ -16,6 +16,9 @@ endpoint mb:SimpleTopicSubscriber orderOutboundTopicSubscriberEp {
 @kubernetes:Deployment {
     name: "order-outbound-shipment-processor-deployment",
     namespace: "default",
+    labels: {
+        "integration": "order"
+    },
     replicas: 1,
     annotations: {
         "prometheus.io/scrape": "true",
