@@ -7,7 +7,9 @@ import raj/orders.model as model;
 
 // @kubernetes:Service {
 //     name: "order-data-service-service",
-//     serviceType: "LoadBalancer"
+//     additionalPorts: {
+//         "prometheus": 9797
+//     }
 // }
 endpoint http:Listener orderDataServiceListener {
     port: 8280
@@ -17,9 +19,17 @@ endpoint http:Listener orderDataServiceListener {
 //     name: "order-data-service-deployment",
 //     namespace: "default",
 //     replicas: 1,
+//     annotations: {
+//         "prometheus.io/scrape": "true",
+//         "prometheus.io/path": "/metrics",
+//         "prometheus.io/port": "9797"
+//     },
+//     additionalPorts: {
+//         "prometheus": 9797
+//     },
 //     buildImage: true,
-//     push: false,
-//     image: "index.docker.io/$env{DOCKER_USERNAME}/order-data-service:0.2.0",
+//     push: true,
+//     image: "index.docker.io/$env{DOCKER_USERNAME}/order-data-service:0.3.0",
 //     username:"$env{DOCKER_USERNAME}",
 //     password:"$env{DOCKER_PASSWORD}",
 //     imagePullPolicy: "Always",
