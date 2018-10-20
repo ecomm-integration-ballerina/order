@@ -1,0 +1,42 @@
+version: '1.0'
+steps:
+  setting_permissions:
+    image: bash
+    commands:
+      - chmod -R 777 /codefresh/volume
+  
+  build_package:
+    title: building order-data-service package
+    image: ballerina/ballerina-platform:0.982.0
+    fail_fast: true
+    commands:
+      - cp -r order-data-service/dependencies/packages/dependencies/* /ballerina/runtime/bre/lib/
+      - ballerina init
+      - ballerina build order-data-service
+
+  build_image:
+    title: building docker image
+    type: build
+    image_name: rajkumar/order-data-service
+    working_directory: ./
+    tag: 0.2.0
+    dockerfile: order-data-service/docker/Dockerfile
+
+  push_image:
+    title: pushing docker image to docker hub
+    type: push
+    candidate: '${{build_image}}'
+    tag: 0.2.0
+    registry: dockerhub
+
+  deploy_to_k8s:
+    title: deploying to kubernetes
+    image: 'codefresh/kube-helm:master'
+    commands:
+      - kubectl config use-context ecomm-integration-ballerina-sit@ecomm-integration-ballerina
+      - kubectl apply -f ${{CF_VOLUME_PATH}}/order/order-data-service/kubernetes/order_data_service_deployment.yaml
+      - kubectl apply -f ${{CF_VOLUME_PATH}}/order/order-data-service/kubernetes/order_data_service_svc.yaml
+
+stages: []
+
+
