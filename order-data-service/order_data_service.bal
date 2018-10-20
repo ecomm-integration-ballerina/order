@@ -69,6 +69,16 @@ endpoint http:Listener orderDataServiceListener {
 service<http:Service> orderDataService bind orderDataServiceListener {
 
     @http:ResourceConfig {
+        methods:["GET"],
+        path: "/healthz"
+    }
+    healthz (endpoint outboundEp, http:Request req) {
+        http:Response res = new;
+        res.setJsonPayload({"message": "I'm still alive!"}, contentType = "application/json");
+        outboundEp->respond(res) but { error e => log:printError("Error while responding", err = e) };
+    } 
+
+    @http:ResourceConfig {
         methods:["POST"],
         path: "/",
         body: "orderJson"

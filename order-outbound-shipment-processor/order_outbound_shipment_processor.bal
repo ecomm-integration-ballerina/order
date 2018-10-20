@@ -30,7 +30,7 @@ endpoint mb:SimpleTopicSubscriber orderOutboundTopicSubscriberEp {
     },
     buildImage: true,
     push: true,
-    image: "index.docker.io/$env{DOCKER_USERNAME}/order-outbound-shipment-processor:0.1.0",
+    image: "index.docker.io/$env{DOCKER_USERNAME}/order-outbound-shipment-processor:0.1.1",
     username:"$env{DOCKER_USERNAME}",
     password:"$env{DOCKER_PASSWORD}",
     imagePullPolicy: "Always",
