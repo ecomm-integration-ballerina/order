@@ -11,7 +11,12 @@ metadata:
   namespace: "default"
   ownerReferences: []
 spec:
-  replicas: 1
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
   template:
     metadata:
       annotations:
@@ -47,7 +52,7 @@ spec:
           - name: b7a_observability_tracing_jaeger_reporter_hostname
             value: "jaeger-udp-service.default.svc.cluster.local"                       
         envFrom: []
-        image: "rajkumar/order-data-service:0.1.0"
+        image: "rajkumar/order-data-service:0.1.1"
         imagePullPolicy: "Always"
         name: "order-data-service-deployment"
         ports:       
@@ -55,14 +60,18 @@ spec:
           name: http 
         - containerPort: 9797
           name: prometheus      
+        readinessProbe:
+          httpGet:
+            path: /data/order/healthz
+            port: 8280
+          initialDelaySeconds: 10
+          periodSeconds: 10
         livenessProbe:
           httpGet:
             path: /data/order/healthz
             port: 8280
-          initialDelaySeconds: 3
-          periodSeconds: 3
-          initialDelaySeconds: 5
-          periodSeconds: 5       
+          initialDelaySeconds: 10
+          periodSeconds: 10              
         volumeMounts: []
       hostAliases: []
       imagePullSecrets: []
