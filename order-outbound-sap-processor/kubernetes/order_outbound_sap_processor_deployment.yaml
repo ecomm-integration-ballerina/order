@@ -6,6 +6,7 @@ metadata:
   finalizers: []
   labels:
     app: "order-outbound-sap-processor"
+    integration: "order"
   name: "order-outbound-sap-processor-deployment"
   namespace: "default"
   ownerReferences: []
@@ -20,6 +21,7 @@ spec:
       finalizers: []
       labels:
         app: "order-outbound-sap-processor"
+        integration: "order"
       ownerReferences: []
     spec:
       containers:

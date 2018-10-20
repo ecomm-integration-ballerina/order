@@ -6,6 +6,7 @@ metadata:
   finalizers: []
   labels:
     app: "order-data-service"
+    integration: "order" 
   name: "order-data-service-deployment"
   namespace: "default"
   ownerReferences: []
@@ -20,6 +21,7 @@ spec:
       finalizers: []
       labels:
         app: "order-data-service"
+        integration: "order"
       ownerReferences: []
     spec:
       containers:
