@@ -85,18 +85,20 @@ function publishToTMCQueue (string req, string orderNo, string status) {
         "documentFilename": null
      };
 
+    log:printInfo("Sending to tmcQueue, order: " + orderNo + ", payload:\n" + payload.toString());
+
     match (tmcQueue.createTextMessage(payload.toString())) {
         error err => {
-            log:printError("!Queued in tmcQueue", err=err);
+            log:printError("Failed to send to tmcQueue, order: " + orderNo, err=err);
         }
         mb:Message msg => {
             var ret = tmcQueue->send(msg);
             match ret {
                 error err => {
-                    log:printError("!Queued in tmcQueue", err=err);
+                    log:printError("Failed to send to tmcQueue, order: " + orderNo, err=err);
                 }
                 () => {
-                    log:printInfo("Queued in tmcQueue");
+                    log:printInfo("Sent to tmcQueue, order: " + orderNo);
                 }
             }
         }
