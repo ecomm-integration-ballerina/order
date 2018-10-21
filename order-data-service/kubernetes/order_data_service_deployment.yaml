@@ -11,7 +11,7 @@ metadata:
   namespace: "default"
   ownerReferences: []
 spec:
-  replicas: 3
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -52,7 +52,7 @@ spec:
           - name: b7a_observability_tracing_jaeger_reporter_hostname
             value: "jaeger-udp-service.default.svc.cluster.local"                       
         envFrom: []
-        image: "rajkumar/order-data-service:0.2.1"
+        image: "rajkumar/order-data-service:0.1.2"
         imagePullPolicy: "Always"
         name: "order-data-service-deployment"
         ports:       

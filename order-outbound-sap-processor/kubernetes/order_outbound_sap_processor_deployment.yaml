@@ -32,6 +32,10 @@ spec:
             value: "b7a-mb-service.default.svc.cluster.local"
           - name: order_mb_port
             value: "5672"
+          - name: tmc_mb_host
+            value: "b7a-mb-service.default.svc.cluster.local"
+          - name: tmc_mb_port
+            value: "5672"            
           - name: b7a_observability_tracing_jaeger_reporter_hostname
             value: "jaeger-udp-service.default.svc.cluster.local"  
           - name: order_data_service_url
@@ -39,8 +43,8 @@ spec:
           - name: sap_api_url
             value: "http://order-backend-mock-service.default.svc.cluster.local:8280/ecomm-backend/order"                                               
         envFrom: []
-        image: "rajkumar/order-outbound-sap-processor:0.1.0"
-        imagePullPolicy: "IfNotPresent"
+        image: "rajkumar/order-outbound-sap-processor:0.1.2"
+        imagePullPolicy: "Always"
         name: "order-outbound-sap-processor-deployment"
         ports:       
         - containerPort: 8280

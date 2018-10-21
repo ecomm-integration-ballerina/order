@@ -29,7 +29,7 @@ service<mb:Consumer> orderOutboundTopicSubscriber bind orderOutboundTopic {
 
                 log:printInfo("Received " + orderType + " order: " + orderNo + " from orderOutboundTopic");
 
-                boolean success = processOrderToSap(orderDAORec);
+                processOrderToSap(orderDAORec);
             }
 
             error e => {

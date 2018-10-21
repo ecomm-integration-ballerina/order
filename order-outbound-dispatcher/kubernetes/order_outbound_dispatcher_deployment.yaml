@@ -38,7 +38,7 @@ spec:
             value: "http://order-data-service-service.default.svc.cluster.local:8280/data/order"                                   
         envFrom: []
         image: "rajkumar/order-outbound-dispatcher:0.1.1"
-        imagePullPolicy: "IfNotPresent"
+        imagePullPolicy: "Always"
         name: "order-outbound-dispatcher-deployment"
         ports:       
         - containerPort: 8280

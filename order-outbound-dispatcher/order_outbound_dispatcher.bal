@@ -36,7 +36,7 @@ public function main(string... args) {
         interval, delay = delay);
 
     timer.start();
-    runtime:sleep(200000);
+    runtime:sleep(2000000000000);
 }
 
 function doOrderOutboundDispatcherETL() returns  error? {

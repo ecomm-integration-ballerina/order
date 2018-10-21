@@ -18,6 +18,12 @@ type Address record {
 
 int maxRetryCount = config:getAsInt("order.outbound.sap.maxRetryCount");
 
+endpoint mb:SimpleQueueSender tmcQueue {
+    host: config:getAsString("tmc.mb.host"),
+    port: config:getAsInt("tmc.mb.port"),
+    queueName: config:getAsString("tmc.mb.queueName")
+};
+
 endpoint http:Client orderDataServiceEndpoint {
     url: config:getAsString("order.data.service.url")
 };
@@ -28,7 +34,7 @@ endpoint soap:Client sapClient {
     }
 };
 
-function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
+function processOrderToSap (model:OrderDAO orderDAORec) {
     
     int tid = orderDAORec.transactionId;
     string orderNo = orderDAORec.orderNo;
@@ -43,9 +49,10 @@ function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
     log:printInfo("Sending to ecc tid: " + tid + ", order: " + orderNo
                         + ", payload: \n" + io:sprintf("%s", idoc));
 
-    var details = sapClient->sendReceive("/", soapRequest);
+    var ret = sapClient->sendReceive("/", soapRequest);
 
-    match details {
+    boolean success;
+    match ret {
         soap:SoapResponse soapResponse => {
 
             xml payload = soapResponse.payload;
@@ -58,6 +65,7 @@ function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
 
                 log:printInfo("Sent to ecc tid: " + tid + ", order: " + orderNo);
                 updateProcessFlag(tid, orderNo, retryCount, "C", "Sent to SAP");
+                success = true;
             }
         }
         soap:SoapError soapError => {
@@ -67,7 +75,53 @@ function processOrderToSap (model:OrderDAO orderDAORec) returns boolean {
         }
     }
 
-    return true;
+    if (success) {
+        publishToTMCQueue(<string> idoc, orderNo, "SENT");
+    } else {
+        publishToTMCQueue(<string> idoc, orderNo, "NOT_SENT");
+    }
+}
+
+function publishToTMCQueue (string req, string orderNo, string status) {
+
+    time:Time time = time:currentTime();
+    string transactionDate = time.format("yyyyMMddHHmmssSSS");
+    json payload = {
+        "externalKey": null,
+        "processInstanceID": orderNo,
+        "receiverDUNSno":"ECC" ,
+        "senderDUNSno": "OPS",
+        "transactionDate": transactionDate,
+        "version": "V01",
+        "transactionFlow": "OUTBOUND",
+        "transactionStatus": status,
+        "documentID": null,
+        "documentName": "ORDER_IMPORT_OPS_ECC",
+        "documentNo": "ORDER_IMPORT_OPS_ECC_" + orderNo,
+        "documentSize": null,
+        "documentStatus": status,
+        "documentType": "xml",
+        "payload": req,
+        "appName": "ORDER_IMPORT_OPS_ECC",
+        "documentFilename": null
+     };
+
+    match (tmcQueue.createTextMessage(payload.toString())) {
+        error err => {
+            log:printError("!Queued in tmcQueue", err=err);
+        }
+        mb:Message msg => {
+            var ret = tmcQueue->send(msg);
+            match ret {
+                error err => {
+                    log:printError("!Queued in tmcQueue", err=err);
+                }
+                () => {
+                    log:printInfo("Queued in tmcQueue");
+                }
+            }
+        }
+    }
 }
 
 function updateProcessFlag(int tid, string orderNo, int retryCount, string processFlag, string errorMessage) {
