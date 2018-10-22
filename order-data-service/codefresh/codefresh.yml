@@ -34,7 +34,8 @@ steps:
     image: 'codefresh/kube-helm:master'
     commands:
       - kubectl config use-context ecomm-integration-ballerina-sit@ecomm-integration-ballerina
-      - kubectl apply -f ${{CF_VOLUME_PATH}}/order/order-data-service/kubernetes/order_data_service_deployment.yaml
+      - kubectl delete -f ${{CF_VOLUME_PATH}}/order/order-data-service/kubernetes/order_data_service_deployment.yaml
+      - kubectl create -f ${{CF_VOLUME_PATH}}/order/order-data-service/kubernetes/order_data_service_deployment.yaml
       - kubectl apply -f ${{CF_VOLUME_PATH}}/order/order-data-service/kubernetes/order_data_service_svc.yaml
 
 stages: []
