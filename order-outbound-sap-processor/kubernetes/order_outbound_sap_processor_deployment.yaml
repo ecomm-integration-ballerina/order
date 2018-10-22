@@ -43,7 +43,7 @@ spec:
           - name: sap_api_url
             value: "http://order-backend-mock-service.default.svc.cluster.local:8280/ecomm-backend/order"                                               
         envFrom: []
-        image: "rajkumar/order-outbound-sap-processor:0.1.2"
+        image: "rajkumar/order-outbound-sap-processor:0.1.0"
         imagePullPolicy: "Always"
         name: "order-outbound-sap-processor-deployment"
         ports:       

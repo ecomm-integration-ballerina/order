@@ -52,7 +52,7 @@ spec:
           - name: b7a_observability_tracing_jaeger_reporter_hostname
             value: "jaeger-udp-service.default.svc.cluster.local"                       
         envFrom: []
-        image: "rajkumar/order-data-service:0.1.2"
+        image: "rajkumar/order-data-service:0.1.0"
         imagePullPolicy: "Always"
         name: "order-data-service-deployment"
         ports:       
