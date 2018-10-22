@@ -12,6 +12,7 @@ function startService() {
     after: "stopService"
 }
 function testHealthz() {
+    
     endpoint http:Client httpEndpoint { url: "http://localhost:8280/data/order" };
     string expectedResp = "I'm still alive!";
 
