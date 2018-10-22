@@ -11,7 +11,7 @@ metadata:
   namespace: "default"
   ownerReferences: []
 spec:
-  replicas: 1
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -55,6 +55,11 @@ spec:
         image: "rajkumar/order-data-service:0.1.0"
         imagePullPolicy: "Always"
         name: "order-data-service-deployment"
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 100m
         ports:       
         - containerPort: 8280
           name: http 

@@ -143,6 +143,10 @@ public function getOrders (http:Request req)
     return resp;
 }
 
+# Updates the process flag
+# + req - req obj
+# + orderJson - order obj
+# + return - An http:Response obj
 public function updateProcessFlag (http:Request req, model:OrderDAO orderJson)
                     returns http:Response {
 

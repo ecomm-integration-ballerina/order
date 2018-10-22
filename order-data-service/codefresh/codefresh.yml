@@ -19,14 +19,14 @@ steps:
     type: build
     image_name: rajkumar/order-data-service
     working_directory: ./
-    tag: 0.2.1
+    tag: 0.1.0
     dockerfile: order-data-service/docker/Dockerfile
 
   push_image:
     title: pushing docker image to docker hub
     type: push
     candidate: '${{build_image}}'
-    tag: 0.2.1
+    tag: 0.1.0
     registry: dockerhub
 
   deploy_to_k8s:
