@@ -1,0 +1,51 @@
+---
+apiVersion: "extensions/v1beta1"
+kind: "Deployment"
+metadata:
+  annotations: {}
+  finalizers: []
+  labels:
+    app: "order-outbound-bq-processor"
+    integration: "order"
+  name: "order-outbound-bq-processor-deployment"
+  namespace: "default"
+  ownerReferences: []
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations: {}
+      finalizers: []
+      labels:
+        app: "order-outbound-bq-processor"
+        integration: "order"
+      ownerReferences: []
+    spec:
+      containers:
+      - args: []
+        command: []
+        env:
+          - name: order_mb_host
+            value: "b7a-mb-service.default.svc.cluster.local"
+          - name: order_mb_port
+            value: "5672"
+          - name: tmc_mb_host
+            value: "b7a-mb-service.default.svc.cluster.local"
+          - name: tmc_mb_port
+            value: "5672"  
+          - name: bq_url
+            value: "http://bq-mock-service.default.svc.cluster.local:8280/bq"                                               
+        envFrom: []
+        image: "rajkumar/order-outbound-bq-processor:0.1.0"
+        imagePullPolicy: "Always"
+        name: "order-outbound-bq-processor-deployment"
+        ports:       
+        - containerPort: 8280
+          name: http           
+        volumeMounts: []
+      hostAliases: []
+      imagePullSecrets: []
+      initContainers: []
+      nodeSelector: {}
+      tolerations: []
+      volumes: []
