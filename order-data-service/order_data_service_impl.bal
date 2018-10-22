@@ -8,11 +8,11 @@ import ballerina/mime;
 type orderBatchType string|int|float;
 
 endpoint mysql:Client orderDB {
-    host: config:getAsString("order.db.host", default = "localhost"),
+    host: config:getAsString("order.db.host", default = "35.188.177.209"),
     port: config:getAsInt("order.db.port", default = 3306),
-    name: config:getAsString("order.db.name", default = "ecomm_database"),
+    name: config:getAsString("order.db.name", default = "WSO2_STAGING"),
     username: config:getAsString("order.db.username", default = "root"),
-    password: config:getAsString("order.db.password", default = "rootroot"),
+    password: config:getAsString("order.db.password", default = "root"),
     poolOptions: { maximumPoolSize: 5 },
     dbOptions: { useSSL: false, serverTimezone:"UTC" }
 };
