@@ -13,7 +13,13 @@ endpoint http:Client orderDataServiceEndpoint {
 };
 
 endpoint http:Client shipmentDataServiceEndpoint {
-    url: config:getAsString("shipment.data.service.url")
+    url: config:getAsString("shipment.data.service.url"),
+    timeoutMillis: 3000,
+    retryConfig: {
+        interval: 100,
+        count: 10,
+        backOffFactor: 0.5
+    }
 };
 
 function processOrderToShipmentAPI (model:OrderDAO orderDAORec) {
