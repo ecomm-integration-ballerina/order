@@ -1,29 +1,11 @@
 import ballerina/http;
 import ballerina/log;
-// import ballerinax/kubernetes;
 import raj/orders.model as model;
 
-// @kubernetes:Service {}
 endpoint http:Listener orderImportInboundDispatcherListener {
     port: 8280
 };
 
-// @kubernetes:Deployment {
-//     name: "order-inbound-dispatcher",
-//     replicas: 1,
-//     buildImage: true,
-//     push: false,
-//     image: "index.docker.io/$env{DOCKER_USERNAME}/order-inbound-dispatcher:0.1.0",
-//     username:"$env{DOCKER_USERNAME}",
-//     password:"$env{DOCKER_PASSWORD}",
-//     imagePullPolicy: "Always",
-//     copyFiles: [
-//         { 
-//             source: "./order-inbound-dispatcher/conf/ballerina.conf", 
-//             target: "/home/ballerina/ballerina.conf", isBallerinaConf: true 
-//         }
-//     ]
-// }
 @http:ServiceConfig {
     basePath: "/order"
 }
