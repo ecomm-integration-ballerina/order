@@ -31,8 +31,8 @@ endpoint mb:SimpleTopicSubscriber orderOutboundTopicSubscriberEp {
     buildImage: false,
     push: false,
     image: "index.docker.io/rajkumar/order-outbound-shipment-processor:0.1.0",
-    username:"$env{DOCKER_USERNAME}",
-    password:"$env{DOCKER_PASSWORD}",
+    // username:"$env{DOCKER_USERNAME}",
+    // password:"$env{DOCKER_PASSWORD}",
     imagePullPolicy: "Always",
     env: {
         order_mb_host: "b7a-mb-service.default.svc.cluster.local",
