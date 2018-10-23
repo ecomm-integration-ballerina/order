@@ -37,7 +37,6 @@ steps:
       - kubectl config use-context ecomm-integration-ballerina-sit@ecomm-integration-ballerina
       - kubectl delete -f ${{CF_VOLUME_PATH}}/order/target/kubernetes/order-outbound-shipment-processor/order-outbound-shipment-processor_deployment.yaml
       - kubectl create -f ${{CF_VOLUME_PATH}}/order/target/kubernetes/order-outbound-shipment-processor/order-outbound-shipment-processor_deployment.yaml
-
 stages: []
 
 
