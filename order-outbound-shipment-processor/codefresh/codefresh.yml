@@ -10,6 +10,8 @@ steps:
     image: ballerina/ballerina-platform:0.982.0
     fail_fast: true
     commands:
+      - cp -r order-outbound-shipment-processor/dependencies/lib/* /ballerina/runtime/bre/lib/  
+      - cp -r order-outbound-shipment-processor/dependencies/balo/* /ballerina/runtime/lib/repo/         
       - ballerina init
       - ballerina build order-outbound-shipment-processor
 
@@ -35,7 +37,7 @@ steps:
       - kubectl config use-context ecomm-integration-ballerina-sit@ecomm-integration-ballerina
       - kubectl delete -f ${{CF_VOLUME_PATH}}/order/target/kubernetes/order-outbound-shipment-processor/order-outbound-shipment-processor_deployment.yaml
       - kubectl create -f ${{CF_VOLUME_PATH}}/order/target/kubernetes/order-outbound-shipment-processor/order-outbound-shipment-processor_deployment.yaml
-      
+
 stages: []
 
 
