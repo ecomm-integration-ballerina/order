@@ -1,0 +1,41 @@
+version: '1.0'
+steps:
+  setting_permissions:
+    image: bash
+    commands:
+      - chmod -R 777 /codefresh/volume
+  
+  build_package:
+    title: building order-outbound-shipment-processor package
+    image: ballerina/ballerina-platform:0.982.0
+    fail_fast: true
+    commands:
+      - ballerina init
+      - ballerina build order-outbound-shipment-processor
+
+  build_image:
+    title: building docker image
+    type: build
+    image_name: rajkumar/order-outbound-shipment-processor
+    working_directory: ./target/kubernetes/order-outbound-shipment-processor/docker/
+    tag: 0.1.0
+    dockerfile: Dockerfile
+
+  push_image:
+    title: pushing docker image to docker hub
+    type: push
+    candidate: '${{build_image}}'
+    tag: 0.1.0
+    registry: dockerhub
+
+  deploy_to_k8s:
+    title: deploying to kubernetes
+    image: 'codefresh/kube-helm:master'
+    commands:
+      - kubectl config use-context ecomm-integration-ballerina-sit@ecomm-integration-ballerina
+      - kubectl delete -f ${{CF_VOLUME_PATH}}/order/target/kubernetes/order-outbound-shipment-processor/order-outbound-shipment-processor_deployment.yaml
+      - kubectl create -f ${{CF_VOLUME_PATH}}/order/target/kubernetes/order-outbound-shipment-processor/order-outbound-shipment-processor_deployment.yaml
+      
+stages: []
+
+
