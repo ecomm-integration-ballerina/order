@@ -28,8 +28,8 @@ endpoint mb:SimpleTopicSubscriber orderOutboundTopicSubscriberEp {
     additionalPorts: {
         "prometheus": 9797
     },
-    buildImage: true,
-    push: true,
+    buildImage: false,
+    push: false,
     image: "index.docker.io/$env{DOCKER_USERNAME}/order-outbound-shipment-processor:0.1.0",
     username:"$env{DOCKER_USERNAME}",
     password:"$env{DOCKER_PASSWORD}",
